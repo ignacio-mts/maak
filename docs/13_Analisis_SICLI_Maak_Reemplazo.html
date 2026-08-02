@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Análisis SICLI y propuesta Maak / SGC</title>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    securityLevel: 'loose',
+    flowchart: { curve: 'basis', htmlLabels: true },
+    themeVariables: {
+      primaryColor: '#EEF0FF',
+      primaryTextColor: '#1E2761',
+      primaryBorderColor: '#332DF7',
+      lineColor: '#5A6478',
+      secondaryColor: '#F2F5FA',
+      tertiaryColor: '#FFFFFF',
+      fontFamily: 'Calibri, Segoe UI, system-ui, sans-serif'
+    }
+  });
+</script>
+<style>
+  :root {
+    --navy: #1E2761;
+    --muted: #5A6478;
+    --purple: #332DF7;
+    --gold: #C08A2E;
+    --card: #F2F5FA;
+    --line: #E2E8F0;
+    --white: #FFFFFF;
+    --soft-red: #FEF2F2;
+    --soft-green: #ECFDF5;
+    --soft-amber: #FFFBEB;
+    --soft-purple: #EEF0FF;
+    --bg-screen: #C8D0DC;
+  }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  /* Keep @page minimal: nested margin boxes (@top-center/@bottom-right) and float:footnote
+     have crashed Chromium/Electron print (incl. Cursor Simple Browser). */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+  }
+  .fn {
+    float: none; display: inline;
+    font-size: 11px; color: var(--muted); line-height: 1.35;
+  }
+  .fn::before { content: " [fuente: "; }
+  .fn::after { content: "]"; }
+  body {
+    margin: 0;
+    background: var(--bg-screen);
+    font-family: Calibri, "Segoe UI", system-ui, sans-serif;
+    color: var(--navy);
+    line-height: 1.55;
+  }
+  .mono { font-family: Consolas, "Courier New", monospace; font-size: 0.92em; }
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 0;
+    background: var(--white);
+  }
+  .hero {
+    background: var(--purple);
+    color: #fff;
+    padding: 44px 48px 40px;
+    margin-bottom: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-content { position: relative; }
+  .hero-eyebrow {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 14px;
+  }
+  .hero h1 {
+    font-family: Cambria, Georgia, "Times New Roman", serif;
+    font-size: 38px; font-weight: 700; line-height: 1.12;
+    letter-spacing: -.02em; margin: 0 0 12px; max-width: 820px;
+  }
+  .hero-sub {
+    font-size: 16px; font-weight: 600;
+    color: rgba(255,255,255,.92); margin: 0 0 12px; max-width: 760px;
+  }
+  .hero p {
+    font-size: 15px; line-height: 1.4;
+    color: rgba(255,255,255,.88); max-width: 780px; margin: 0;
+  }
+  .hero-meta {
+    margin-top: 28px; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,.22);
+    font-size: 13px; color: rgba(255,255,255,.78);
+    display: flex; gap: 26px; flex-wrap: wrap;
+  }
+  .hero-meta b { color: #fff; font-weight: 700; }
+
+  .content { padding: 32px 48px 48px; }
+
+  h2.section {
+    font-family: Cambria, Georgia, "Times New Roman", serif;
+    font-size: 24px; font-weight: 700; letter-spacing: -.02em;
+    margin: 36px 0 6px; line-height: 1.18; color: var(--navy);
+    break-after: avoid;
+  }
+  h2.section:first-of-type { margin-top: 6px; }
+  h2.section .kicker {
+    display: block; font-family: Calibri, "Segoe UI", system-ui, sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--gold); margin-bottom: 6px;
+  }
+  .section-rule {
+    height: 3px; width: 48px; background: var(--purple);
+    border-radius: 2px; margin: 10px 0 18px;
+  }
+  h3.sub {
+    font-family: Cambria, Georgia, serif;
+    font-size: 17px; font-weight: 700; color: var(--navy);
+    margin: 24px 0 8px; break-after: avoid;
+  }
+  h4.flow {
+    font-family: Cambria, Georgia, serif;
+    font-size: 15px; font-weight: 700; color: var(--navy);
+    margin: 20px 0 8px;
+  }
+  p { font-size: 14.5px; color: var(--navy); margin: 0 0 12px; }
+  strong { color: var(--navy); font-weight: 700; }
+  em { font-style: italic; }
+  .lead { font-size: 15.5px; color: var(--muted); line-height: 1.45; }
+  ul.bl { list-style: none; padding: 0; margin: 0 0 14px; }
+  ul.bl li {
+    position: relative; padding-left: 16px; margin-bottom: 7px;
+    font-size: 14px; color: var(--navy); line-height: 1.4;
+  }
+  ul.bl li::before {
+    content: ""; position: absolute; left: 0; top: 8px;
+    width: 6px; height: 6px; border-radius: 1px; background: var(--purple);
+  }
+  ol.num { margin: 0 0 14px; padding-left: 22px; }
+  ol.num li { font-size: 14px; color: var(--navy); margin-bottom: 7px; }
+
+  .card {
+    background: var(--card); border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 12px; break-inside: avoid;
+  }
+  .card h3, .card .card-title, .card > strong:first-child {
+    display: block;
+    margin: 0 0 8px; font-size: 11px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--gold);
+  }
+  .card h4 {
+    margin: 0 0 6px;
+    font-family: Cambria, Georgia, serif;
+    font-size: 15px; color: var(--navy);
+  }
+
+  .callout {
+    border-radius: 6px; padding: 12px 14px; margin: 14px 0;
+    break-inside: avoid; font-size: 13.5px; line-height: 1.4;
+    background: var(--soft-purple); border-left: 3px solid var(--purple);
+  }
+  .callout.green {
+    background: var(--soft-green); border-left-color: #059669;
+  }
+  .callout.red {
+    background: var(--soft-red); border-left-color: #DC2626;
+  }
+  .callout.dark {
+    background: var(--navy); border-left: 3px solid var(--gold); color: #fff;
+  }
+  .callout.dark .callout-title { color: var(--gold); }
+  .callout.dark p { color: rgba(255,255,255,.92); }
+  .callout.dark strong { color: #fff; }
+  .callout-title {
+    font-weight: 700; font-size: 14px; margin-bottom: 7px; color: var(--navy);
+  }
+  .callout p { font-size: 13.5px; margin-bottom: 7px; color: var(--navy); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 3px; letter-spacing: .04em;
+  }
+  .badge-blue { background: #EEF0FF; color: #332DF7; }
+  .badge-green { background: #D1FAE5; color: #065F46; }
+  .badge-red { background: #FEE2E2; color: #991B1B; }
+  .badge-slate { background: #E2E8F0; color: #334155; }
+  .badge-amber { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+
+  .statstrip { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .statstrip .stat {
+    flex: 1 1 0; min-width: 120px; padding: 12px 14px;
+    background: var(--card); border-radius: 6px; break-inside: avoid;
+  }
+  .stat-num {
+    font-family: Cambria, Georgia, serif;
+    font-size: 22px; font-weight: 700; line-height: 1; color: var(--purple);
+  }
+  .stat-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--muted); font-weight: 700; margin-top: 6px;
+  }
+
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 12.5px; }
+  th, td { text-align: left; padding: 7px 10px; vertical-align: top; }
+  th {
+    background: var(--navy); color: #fff; font-weight: 600;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  tbody tr { border-bottom: 1px solid var(--line); break-inside: avoid; }
+  tbody tr:nth-child(even) td { background: var(--card); }
+  td { color: var(--navy); }
+  td:first-child { font-weight: 700; }
+
+  .phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  .phase {
+    background: var(--card); border-radius: 6px; padding: 14px;
+    break-inside: avoid;
+  }
+  .phase .ph {
+    font-family: Cambria, Georgia, serif;
+    font-size: 22px; font-weight: 700; color: var(--purple); line-height: 1;
+  }
+  .phase .ph-t {
+    font-family: Cambria, Georgia, serif;
+    font-weight: 700; font-size: 14px; margin: 6px 0 6px; color: var(--navy);
+  }
+  .phase .ph-d { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  .mermaid {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 6px; padding: 16px 12px; margin: 12px 0 20px;
+    overflow-x: auto; text-align: center; break-inside: avoid;
+  }
+  .notebox {
+    font-size: 13px; color: var(--navy); background: var(--soft-purple);
+    border-left: 3px solid var(--purple); border-radius: 6px;
+    padding: 10px 13px; margin: 0 0 14px;
+  }
+  a { color: var(--purple); text-decoration: none; }
+  .footer-note {
+    margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 11.5px; color: var(--muted); font-style: italic;
+  }
+  .print-bar {
+    position: fixed; bottom: 18px; right: 18px;
+    background: var(--navy); color: white; padding: 10px 16px;
+    border-radius: 999px; font-size: 13px;
+    box-shadow: 0 12px 28px rgba(30,39,97,.35);
+    cursor: pointer; z-index: 9999; border: none;
+    font-family: Calibri, "Segoe UI", system-ui, sans-serif; font-weight: 600;
+  }
+  .print-bar:hover { background: var(--purple); }
+
+  .proj {
+    background: var(--card); border-radius: 6px; margin-bottom: 14px;
+    break-inside: avoid; overflow: hidden;
+  }
+  .proj-head {
+    background: var(--white); border-bottom: 1px solid var(--line);
+    padding: 12px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .proj-head .proj-name {
+    font-family: Cambria, Georgia, serif;
+    font-size: 15px; font-weight: 700; color: var(--navy); margin-right: 4px;
+  }
+  .proj-body { display: grid; grid-template-columns: 1fr 1fr; }
+  .proj-col { padding: 12px 16px 14px; background: var(--white); }
+  .proj-col + .proj-col { border-left: 1px solid var(--line); }
+  .proj-col .pc-t {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; margin-bottom: 7px; color: var(--gold);
+  }
+  .pc-t.bad { color: #DC2626; } .pc-t.good { color: #065F46; }
+  .proj-col ul { list-style: none; margin: 0; padding: 0; }
+  .proj-col li {
+    font-size: 12px; color: var(--navy); line-height: 1.45;
+    padding: 3px 0 3px 14px; position: relative;
+  }
+  .proj-col li::before {
+    content: ""; position: absolute; left: 1px; top: 9px;
+    width: 5px; height: 5px; border-radius: 1px;
+  }
+  .proj-col.bad li::before { background: #DC2626; }
+  .proj-col.good li::before { background: #059669; }
+
+  @media screen {
+    body { background: var(--bg-screen); }
+    .page {
+      background: var(--white);
+      margin: 28px auto 48px;
+      box-shadow: 0 18px 50px rgba(15,23,42,.18);
+      overflow: hidden;
+    }
+    .fn { float: none; display: inline; font-size: 11px; color: var(--muted); }
+    .fn::before { content: " [fuente: "; } .fn::after { content: "]"; }
+  }
+  @media print {
+    body { background: #fff; }
+    .print-bar { display: none !important; }
+    .page { max-width: none; box-shadow: none; margin: 0; }
+    .content { padding: 0; }
+    .hero { break-inside: avoid; }
+    /* Mermaid SVGs: constrain size to avoid Chromium print OOM/crash */
+    pre.mermaid {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      max-height: 320px;
+      overflow: hidden;
+      border: 1px solid #E2E8F0;
+      border-radius: 4px;
+      padding: 6px;
+    }
+    pre.mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+      max-height: 300px;
+    }
+    .callout, .card, table, .notebox { break-inside: avoid; }
+  }
+
+
+
+  /* Prototipos Maak (anexo) */
+  .proto-note {
+    font-size: 13px; color: var(--muted); margin: 0 0 8px; line-height: 1.4;
+  }
+  .proto-grid { display: grid; grid-template-columns: 1fr; gap: 18px; margin: 8px 0 20px; }
+  .proto {
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: #F8FAFC; break-inside: avoid;
+  }
+  .proto-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line);
+  }
+  .proto-head .who {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--purple);
+  }
+  .proto-head .what {
+    font-family: Cambria, Georgia, serif; font-size: 15px; font-weight: 700; color: var(--navy);
+  }
+  .proto-body { padding: 14px; font-family: Calibri, "Segoe UI", system-ui, sans-serif; }
+  .proto-frame {
+    background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+  }
+  .pf-flow { display: flex; overflow: hidden; }
+  .pf-step { flex: 1; min-width: 0; padding: 8px 6px; border: 1px solid #E2E8F0; background: #FAFBFC; font-size: 11px; }
+  .pf-step + .pf-step { border-left: 0; }
+  .pf-step:first-child { border-radius: 6px 0 0 6px; }
+  .pf-step:last-child { border-radius: 0 6px 6px 0; }
+  .pf-step b { display: block; font-size: 12px; color: var(--navy); margin: 2px 0; }
+  .pf-step span { font-weight: 700; }
+  .pf-ok { background: #ECFDF5; border-color: #A7F3D0; }
+  .pf-ok span { color: #059669; }
+  .pf-now { background: #EEF0FF; border-color: #332DF7; box-shadow: inset 0 0 0 1px #332DF7; }
+  .pf-now span { color: #332DF7; }
+  .pf-bad { background: #FEF2F2; border-color: #FECACA; }
+  .pf-bad span { color: #DC2626; }
+  .pf-mute span { color: #64748B; }
+  .pf-g { display: grid; grid-template-columns: 88px 1fr 40px; gap: 6px; align-items: center; margin-top: 8px; font-size: 11px; }
+  .pf-tr { height: 14px; background: #F1F5F9; border-radius: 3px; position: relative; overflow: hidden; }
+  .pf-bar { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
+  .pf-gap { border: 1px solid #FECACA; background: #FEF2F2; border-radius: 6px; padding: 8px 10px; margin-top: 8px; font-size: 12px; }
+  .pf-gap strong { display: block; color: var(--navy); }
+  .pf-gap p { margin: 2px 0 0; color: var(--muted); font-size: 11.5px; }
+  .pf-pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+  .pf-pill.bad { background: #FEF2F2; color: #DC2626; }
+  .pf-pill.warn { background: #FFFBEB; color: #D97706; }
+  .pf-pill.ok { background: #ECFDF5; color: #059669; }
+  .pf-mail { background: #F8FAFC; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 12px; margin-bottom: 6px; }
+  .pf-case { background: #EEF0FF; border: 1px solid #332DF7; border-radius: 6px; padding: 8px 10px; font-size: 12px; }
+  .pf-impact { background: #1E2761; color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin-top: 8px; }
+  .pf-impact b { color: #C4B5FD; }
+  .pf-okcard { text-align: center; padding: 14px; background: linear-gradient(135deg,#ECFDF5,#EEF0FF); border-radius: 8px; border: 1px solid #A7F3D0; }
+  .pf-okcard .big { font-family: Cambria, Georgia, serif; font-size: 18px; font-weight: 700; color: #059669; margin: 6px 0; }
+  .pf-mono { font-family: Consolas, monospace; font-size: 11px; background: #fff; display: inline-block; padding: 4px 8px; border-radius: 4px; margin-top: 6px; color: var(--navy); }
+  .pf-q { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .pf-q th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .pf-q td { padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .pf-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .pf-two { grid-template-columns: 1fr; } }
+  @media print {
+    .proto { break-inside: avoid; }
+    .proto iframe { display: none; }
+  }
+
+  @media (max-width: 820px) {
+    .content { padding: 24px 20px 36px; }
+    .hero { padding: 32px 24px 28px; }
+    .grid-2, .phases, .proj-body { grid-template-columns: 1fr; }
+    .proj-col + .proj-col { border-left: none; border-top: 1px solid var(--line); }
+    .hero h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<button class="print-bar" type="button" onclick="exportPdfSafe()">Imprimir / Exportar PDF</button>
+<script>
+function exportPdfSafe() {
+  // Defer print so layout settles; avoid nested paged-media crashes.
+  document.documentElement.classList.add('is-printing');
+  const cleanup = () => document.documentElement.classList.remove('is-printing');
+  window.addEventListener('afterprint', cleanup, { once: true });
+  setTimeout(() => {
+    try {
+      window.print();
+    } catch (err) {
+      cleanup();
+      alert('No se pudo abrir el diálogo de impresión. Abrí esta página en Chrome o Safari y usá Archivo → Exportar como PDF.');
+    }
+  }, 150);
+}
+</script>
+<div class="page">
+
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">Confidencial · Julio 2026</div>
+      <h1>SICLI → Maak</h1>
+      <div class="hero-sub">Análisis as-is de SICLI y arquitectura objetivo Maak / SGC</div>
+      <p>Inventario y flujos as-is de SICLI; corte de dominios respecto de core headless, Modo Cuentas y Xook; propuesta Maak (Next.js + Fargate); y evaluación del Lucid “Experiencia Maak” (Globant, feb 2026).</p>
+      <div class="hero-meta">
+        <div>Preparado por <b>Ignacio Mieites</b></div>
+        <div>Audiencia <b>Producto · IT · Ops · PLD</b></div>
+        <div>Julio 2026 · <b>v3.10</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+  <h2 class="section"><span class="kicker">Resumen ejecutivo</span>No reescribir SICLI: separar Persona de cuenta</h2>
+  <div class="section-rule"></div>
+  <p class="lead">SICLI es un monolito JSF (v2.22.x) que mezcla expediente, KYC manual y activación — hoy es la única fuente de “cliente verificado y activo”. El dominio de <em>quién es el cliente</em> está bien; la plataforma no. Maak reemplaza ese dominio (Persona + expediente + casos — <em>no</em> el SPEI del día a día). Las cuentas viven en un <strong>core headless</strong> (Modo Cuentas); EF queda solo como enlace SPEI; Xook es el canal/UI sobre el core; COE es servicio al cliente sobre APIs de Maak + core — no un módulo de Maak.</p>
+
+  <div class="callout dark">
+    <div class="callout-title">Lineamientos de la propuesta (actualizado 29-jul)</div>
+    <p><strong>1. Alcance MVP:</strong> onboarding puro (captura + chequeos KYC/KYB/PLD). Queda fuera del MVP la gestión de cuentas y modificaciones operativas.</p>
+    <p><strong>2. Canal prioritario:</strong> la mayoría del volumen ingresa por mail/ticket, no por portal. Agente de ingesta → Maak + chequeos automáticos + cola human-in-the-loop.</p>
+    <p><strong>3. Pareto de tipos:</strong> ~17 tipos de alta; arrancar por los ~15 estándar (excl. internacionales/fideicomisos; SOFOMs y similares después).</p>
+    <p><strong>4. Prioridad de volumen:</strong> centros de costo (recurrentes) antes que cuenta padre (~50–80 padres/mes). Comparten motor de reglas y evaluator, pero <em>no</em> el mismo flujo: CC DRS es Persona hija + gate GE y template propio; el padre es onboarding completo de Persona raíz.</p>
+    <p><strong>5. Diccionario de controles/reglas + templates de caso</strong> (herencia + params): docs, KYC, INE, directores, listas, geo — un motor para agente, portal y HITL. El mismo esquema admite <strong>deltas por entidad/servicio del grupo</strong> (STP IFPE hoy; Sttega / SOFIPO después) sin un segundo ClienteOS.</p>
+    <p><strong>6.</strong> Maak Next.js/Fargate + rails thin (listas/face/institucionales) — no suite salvo headless ganador; adapter SICLI; core/Xook/EF en paralelo.</p>
+    <p><strong>7. COE ≠ Maak:</strong> Centro de Excelencia = transformación del servicio (ABC, passwords, bloqueos, WhatsApp/Genesys). Consume APIs de Maak (Persona/cumplimiento) y del core (Account/bloqueo operativo).</p>
+    <p><strong>8. Transición “verificado / activo”:</strong> no se replica el flag monolítico de SICLI en Maak. Se separan los conceptos: Maak certifica Persona <span class="mono">VERIFICADA</span>; el core (en transición, SICLI/EF vía adapter) certifica cuenta <span class="mono">ACTIVA</span>. Con Modo Cuentas disponible se retira el adapter y <span class="mono">PersonaOK</span> materializa la Account en el core.</p>
+    <p><strong>9. API-first:</strong> contrato OpenAPI para todo consumidor autorizado; MCP (Cursor/Claude) y conector Slack como clientes de esa API, sin superficies paralelas no auditadas.</p>
+    <p><strong>10. SGC legacy ≠ restart Camunda:</strong> cosechar DMN/docs, modelo Persona y bindings (Trebol/Meltsan/MiFiel); no reponer Zeebe/Angular/microservicios como centro del MVP.</p>
+    <p><strong>11. Unlock comercial:</strong> bajar TAT y cerrar el hueco KYC no es solo compliance — es la palanca de cross-sell sobre la base instalada (+11,000 clientes) sin burn de adquisición B2C. Persona verificada una vez → elegible para más productos/servicios del grupo.</p>
+  </div>
+
+  <div class="notebox">El detalle del desdoblamiento “verificado / activo”, criterios de transición y secuencia de handoff se desarrollan en la sección <strong>Plan de transición</strong>. La extensión del motor de reglas a entidades del grupo (Sttega, SOFIPO) está en <strong>Configurador de reglas</strong>.</div>
+
+
+  <!-- ARQUITECTURA TARGET -->
+  <h2 class="section"><span class="kicker">Arquitectura target</span>EF · Core headless · Xook · Maak</h2>
+  <div class="section-rule"></div>
+  <p>Hoy EF y el core de conciliación viven en el mismo monolito (LGEC). El plan es <strong>desacoplar</strong>: EF solo mueve SPEI; el producto “cuenta” vive en un core headless contratado/construido; la experiencia de cuentas es otra capa.</p>
+
+  <h3 class="sub">Glosario — arquitectura target</h3>
+  <table>
+    <thead><tr><th>Término</th><th>Qué es</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Maak</strong></td>
+        <td>Sistema de ciclo de vida de la <strong>Persona</strong>: expediente, KYC/KYB, casos PLD/GE/DDN, firmas de contrato, jerarquía padre/CC. Emite <span class="mono">PersonaOK</span> cuando la identidad está verificada. No opera saldos ni SPEI. El MVP corre sobre STP (IFPE); el modelo Persona + diccionario de reglas se diseña como <strong>capa de identidad compartida del grupo</strong> (consumible luego por Sttega / SOFIPO / partners vía API).</td>
+      </tr>
+      <tr>
+        <td><strong>Persona</strong></td>
+        <td>Unidad de identidad en Maak (persona física o moral): cliente padre, CC DRS, apoderado, UBO, etc. Sustituye el término inglés <em>Party</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>Core headless / Modo Cuentas</strong></td>
+        <td>Producto “cuenta” de STP: alta, baja y modificación de cuentas/subcuentas, saldos, estructuras y configs operativas. Sin UI propia y sin acceso directo al cliente final.<span class="fn">Xook Modo Cuentas — reunión 17-jul-2026 (América, Paulo, Zeke, Jaime).</span></td>
+      </tr>
+      <tr>
+        <td><strong>Xook</strong></td>
+        <td>Canal / backoffice / experiencia de <em>cuentas y productos</em> sobre el core (BFF + front). Históricamente el nombre se usó para el “nuevo core” (14 módulos LGEC); en target no es el ledger ni mete FaceTec/matrices PLD.</td>
+      </tr>
+      <tr>
+        <td><strong>EF (Enlace Financiero)</strong></td>
+        <td>Riel SPEI. En target solo mueve pagos; deja de ser el monolito que concentra core de cuentas (hoy acoplado en LGEC).</td>
+      </tr>
+      <tr>
+        <td><strong>COE</strong></td>
+        <td>Centro de Excelencia — transformación del servicio al cliente (ABC usuarios, passwords, bloqueos, WhatsApp/Genesys). Consume APIs de Maak y del core; no es módulo de Maak.</td>
+      </tr>
+      <tr>
+        <td><strong>SICLI</strong></td>
+        <td>Legacy actual (JSF). En transición recibe altas vía adapter desde Maak; se apaga por cohortes cuando el core + Maak cubren el recorrido.</td>
+      </tr>
+      <tr>
+        <td><strong>Rails / bindings</strong></td>
+        <td>Proveedores thin detrás de controles Maak: listas (hoy <strong>Meltsan</strong> u otro feed), firmas (hoy <strong>MiFiel</strong>), face/liveness, consultas institucionales. El control vive en Maak; el vendor es intercambiable vía <span class="mono">binding</span>.</td>
+      </tr>
+      <tr>
+        <td><strong>OpenAPI Maak</strong></td>
+        <td>Contrato HTTP versionado del sistema de record. Fuente de verdad para integraciones (COE, core, partners) y base del servidor MCP.</td>
+      </tr>
+      <tr>
+        <td><strong>MCP Maak</strong></td>
+        <td>Capa de tools para agentes (Cursor, Claude) y conectores (Slack) sobre las mismas acciones OpenAPI + RBAC + audit.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre class="mermaid">
+flowchart TB
+  subgraph channels [Canales]
+    MaakUI[Maak Next.js - portal y BO clientes]
+    XookUI[Xook - portal y BO cuentas]
+  end
+  subgraph maakDomain [Dominio Cliente]
+    MaakAPI[Maak APIs Fargate]
+    KYC[Vendor KYC/KYB + FaceTec]
+  end
+  subgraph accounts [Dominio Cuenta]
+    Core[Core headless - Modo Cuentas]
+    XookBFF[Xook BFF / APIs producto]
+  end
+  subgraph rails [Rieles]
+    EF[EF - solo enlace SPEI]
+  end
+  MaakUI --> MaakAPI
+  MaakAPI --> KYC
+  MaakAPI -->|"PersonaOK / eventos"| XookBFF
+  XookUI --> XookBFF
+  XookBFF --> Core
+  Core --> EF
+  </pre>
+
+  <table>
+    <thead><tr><th>Pieza</th><th>Dueña de</th><th>No dueña de</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Maak</strong></td><td>Persona, solicitante, expediente, riesgo, casos PLD/GE/DDN, firmas contrato, CC DRS como Persona hija</td><td>Saldos, CLABE operativa, configs 24×7/traspaso</td></tr>
+      <tr><td><strong>Core headless / Modo Cuentas</strong></td><td>Account, subcuenta, producto, estado operativo, configs de cuenta</td><td>OCR, biometría, listas PEP</td></tr>
+      <tr><td><strong>Xook (UI/canal)</strong></td><td>Experiencia de cuentas/productos sobre el core</td><td>Expediente KYC</td></tr>
+      <tr><td><strong>EF</strong></td><td>Enlace SPEI</td><td>Core de clientes/cuentas (post-desacople)</td></tr>
+      <tr><td><strong>COE</strong></td><td>Canales/automatización de servicio (ABC, passwords, bloqueos self-service)</td><td>Expediente KYC; ledger; dueño de Persona</td></tr>
+    </tbody>
+  </table>
+
+  <div class="notebox"><strong>CC DRS</strong> (centro de costos de diferente razón social) = Persona hija con KYC propio → nace en <strong>Maak</strong>; la Account bajo el padre se materializa en el <strong>core</strong> vía Xook/BFF. <strong>CC MRS</strong> suele ser estructura operativa → puede nacer en el core con checks livianos.</div>
+
+  <!-- MAPA -->
+  <h2 class="section"><span class="kicker">Contexto</span>Mapa de sistemas</h2>
+  <div class="section-rule"></div>
+  <table>
+    <thead><tr><th>Sistema</th><th>Rol</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr><td><strong>SICLI</strong></td><td>Alta/mantenimiento clientes hoy (JSF)</td><td><span class="badge badge-amber">Legacy vivo</span></td></tr>
+      <tr><td><strong>Maak / SGC</strong></td><td>Reemplazo: Personas + KYC + casos · Next.js / Fargate</td><td><span class="badge badge-blue">Diseño</span></td></tr>
+      <tr><td><strong>Modo Cuentas / core headless</strong></td><td>Productos y cuentas</td><td><span class="badge badge-amber">Desacople / buy-build</span></td></tr>
+      <tr><td><strong>Xook</strong></td><td>Interfaz/canal sobre el core</td><td><span class="badge badge-blue">Programa</span></td></tr>
+      <tr><td><strong>EF</strong></td><td>Enlace SPEI (target); hoy monolito con core</td><td><span class="badge badge-red">A desacoplar</span></td></tr>
+      <tr><td><strong>COE</strong></td><td>Centro de Excelencia — transformación del <em>servicio al cliente</em> (ABC, bloqueos, passwords, WhatsApp/Genesys). No es módulo de Maak.</td><td><span class="badge badge-slate">Depende Maak + core</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">Integración COE con Maak y core</div>
+    <p><strong>COE</strong> (PRD América/Nicolás, jul 2026) digitaliza el soporte del cliente <em>ya activo</em>: altas/bajas/cambios de usuarios, passwords/2FA, bloqueos/cancelaciones, agente WhatsApp, menos fricción Genesys. Duele por NPS/FCR/cola — no por KYC de alta.</p>
+    <p><strong>COE no sustituye a Maak.</strong> Es canal y automatización de servicio. Consulta y ordena cambios vía APIs:</p>
+    <ul class="bl" style="margin:8px 0 0;">
+      <li><strong>→ Maak:</strong> <span class="mono">getPersona</span> / snapshot de cumplimiento, relaciones padre–CC, estado <span class="mono">VERIFICADA|BLOQUEADA|EN_REMEDIACION</span>, abrir caso de remediación si el pedido toca expediente/PLD.</li>
+      <li><strong>→ Core (Modo Cuentas):</strong> alta/baja/cambio de cuenta/subcuenta, bloqueo operativo, configs 24×7/traspaso, estado de Account.</li>
+      <li><strong>→ Auth/IdP (o core):</strong> reset password / 2FA — no vive en el expediente KYC.</li>
+    </ul>
+    <p style="margin-top:10px;">Frontera TBD (el propio PRD COE lo marca): mantenimiento de datos PLD de CC y contactos de CC puede caer en Maak (onboarding/expediente) o en COE self-service que llama Maak. Genesys/WhatsApp/aclaraciones/fraudes = COE, no Maak.</p>
+  </div>
+
+  <!-- TRANSICION VERIFICADO/ACTIVO -->
+  <h2 class="section"><span class="kicker">Plan de transición</span>Verificado vs activo</h2>
+  <div class="section-rule"></div>
+  <p class="lead">SICLI concentra hoy, en un solo sistema y semáforo operativo, dos conceptos distintos: <strong>identidad cumplida</strong> y <strong>cuenta operable</strong>. La arquitectura objetivo los separa (Maak / core). Durante la transición se preserva continuidad operativa hacia EF y operaciones hasta que el core headless esté disponible.</p>
+
+  <table>
+    <thead><tr><th></th><th>Hoy (SICLI)</th><th>Target (Maak + core)</th><th>Transición (MVP→R2)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>“Verificado”</strong></td>
+        <td>Expediente + PLD/GE + firmas OK dentro de SICLI</td>
+        <td>Maak: Persona en estado <span class="mono">VERIFICADA</span> (evaluator + gates + firmas). Evento <span class="mono">PersonaOK</span></td>
+        <td>Maak hace la verificación; el adapter escribe el equivalente en SICLI para no romper reportes/ops</td>
+      </tr>
+      <tr>
+        <td><strong>“Activo”</strong></td>
+        <td>Cliente/cuenta usable en EF (a menudo con pasos manuales post-aprobado)</td>
+        <td>Core: Account <span class="mono">ACTIVA</span>. Maak <em>no</em> materializa saldos ni CLABE</td>
+        <td>Mientras no haya core: “activo” sigue materializándose vía <strong>adapter → SICLI → EF</strong> (mismo camino operativo de hoy, con KYC ya hecho en Maak)</td>
+      </tr>
+      <tr>
+        <td><strong>Fuente de verdad</strong></td>
+        <td>SICLI (mezcla todo)</td>
+        <td>Maak = Persona/expediente · Core = Account · EF = riel SPEI</td>
+        <td>Maak = verdad de cumplimiento · SICLI = verdad operativa temporal · luego SICLI se apaga por cohorte</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout dark">
+    <div class="callout-title">Criterio de transición</div>
+    <p>No se reemplaza el flag de SICLI por un equivalente monolítico en Maak. Se separan los conceptos: <strong>Maak</strong> certifica que la Persona está verificada; el <strong>core</strong> (en la transición, aún SICLI/EF vía adapter) certifica que la cuenta está activa. Operaciones y EF mantienen continuidad: Maak completa el KYC y empuja el alta al adapter. Cuando Modo Cuentas esté disponible, se retira el adapter y <span class="mono">PersonaOK</span> materializa la Account en el core.</p>
+  </div>
+
+  <pre class="mermaid">
+sequenceDiagram
+  participant M as Maak
+  participant A as Adapter SICLI
+  participant S as SICLI / EF
+  participant C as Core headless
+
+  Note over M,S: Fase transición (MVP)
+  M->>M: Persona VERIFICADA
+  M->>A: PersonaOK + paquete alta
+  A->>S: Alta cliente/cuenta como hoy
+  S-->>M: ack operativo (activo en EF)
+
+  Note over M,C: Fase target
+  M->>M: Persona VERIFICADA
+  M->>C: PersonaOK
+  C-->>M: Account ACTIVA
+  Note over A,S: Adapter apagado / SICLI deprecado
+  </pre>
+
+  <div class="grid-2">
+    <div class="card">
+      <strong>Compromisos de la transición</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Ningún alta operativa sin pasar evaluator Maak (cierra hueco CC sin KYC)</li>
+        <li>Ops sigue viendo clientes “activos” donde ya los mira (SICLI/EF)</li>
+        <li>Misma Persona puede luego vivir en core sin re-hacer KYC (expediente ya en Maak)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>Fuera de alcance en la transición</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Que Maak habilite por sí solo la operación SPEI en el día 1</li>
+        <li>Big-bang apagando SICLI antes del core</li>
+        <li>Un único estado que vuelva a mezclar cumplimiento PLD y saldo operativo</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="notebox"><strong>Estados Maak (Persona), no confundir con Account:</strong> <span class="mono">PROSPECTO → EN_KYC → VERIFICADA → BLOQUEADA | EN_REMEDIACION</span>. El caso de onboarding puede estar <span class="mono">ACTIVE</span> (caso cerrado) mientras la Account aún se materializa — por eso el to-be tiene <span class="mono">ACTIVATING</span> hasta confirmación del core/adapter.</div>
+
+  <!-- SICLI AS-IS -->
+  <h2 class="section"><span class="kicker">As-is</span>Inventario funcional de SICLI</h2>
+  <div class="section-rule"></div>
+  <h3 class="sub">Stack técnico</h3>
+  <ul class="bl">
+    <li><strong>Java 8</strong> + Spring Boot 2.x + JoinFaces / JSF + PrimeFaces — <span class="mono">sistema-clientes</span> <strong>2.22.4.2</strong>.</li>
+    <li>~276 XHTML; Vault, Jenkins, Docker; MiFiel, Meltsan, IVR, NextCloud.</li>
+    <li>Fixes productivos frecuentes vía SQL — no es fuente de verdad confiable.</li>
+  </ul>
+
+  <h3 class="sub">Capacidades</h3>
+  <table>
+    <thead><tr><th>Dominio</th><th>Qué hace</th></tr></thead>
+    <tbody>
+      <tr><td>Onboarding PM / PFAE</td><td>Docs, datos, accionistas, RL, perfil transaccional, firmas, riesgo</td></tr>
+      <tr><td>Onboarding CC MRS/DRS</td><td>Alta bajo padre; GE en evaluación (CC)</td></tr>
+      <tr><td>Mantenimientos</td><td>Info general, contactos, docs, traspaso final, riesgo, cuentas</td></tr>
+      <tr><td>ABC Usuarios</td><td>Alta usuarios hacia EF (MiFiel + Meltsan). <em>Hoy en SICLI; en target no permanece ahí</em> — ver to-be.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout red">
+    <div class="callout-title">Hallazgos operativos P0 (sesión Maak 7-jul)</div>
+    <p>Excel/Word/RPA para bajas y mantenimientos; ~50 clientes nuevos → ~200 subcuentas; cambios de sistema 6 meses–2 años; “cuentas sin controles”; sin KPI de valor de expediente; TAT onboarding 12–15 días hábiles (cuello documental/PLD).</p>
+  </div>
+
+  <!-- FLUJOS AS-IS -->
+  <h2 class="section"><span class="kicker">Flujos as-is</span>SICLI hoy</h2>
+  <div class="section-rule"></div>
+  <p>Máquina de estados verificada el <strong>30-jul-2026</strong> contra Confluence DDDDS: página <em>Estados de Sicli</em> (v7, Lizet Ramírez, jun 2026) y whiteboard <em>Estados Sicli</em> (tres diagramas “Actual”: Onboarding PM, Onboarding CC, Mantenimiento PM y CC). La matriz y el detalle textual son la fuente normativa; los diagramas gráficos confirman los mismos estados y el gate condicional de riesgo hacia Directivo Facultado.<span class="fn"><a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/pages/812580878/Estados+de+Sicli">Estados de Sicli</a> · <a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/whiteboard/813039629">Whiteboard Estados Sicli</a>.</span></p>
+
+  <div class="callout">
+    <div class="callout-title">Hallazgos de la verificación (jun/jul 2026)</div>
+    <p><strong>Matriz intacta:</strong> GE solo en onboarding CC; DDN solo en onboarding PM/CC; Expedientes* solo en mantenimiento; PLD/Dictaminación y Directivo Facultado en los cuatro flujos.</p>
+    <p><strong>Gate de riesgo:</strong> el whiteboard marca decisión tipo <em>¿Riesgo bloquea?</em> hacia Evaluación / Directivo Facultado — no es un paso lineal obligatorio.</p>
+    <p><strong>Hueco documental:</strong> §5 de Confluence detalla Nuevo, En Proceso (Docs/Datos), Firmas, Aprobado y Rechazado; los subestados de Evaluación (GE/DDN/PLD/Facultado/Expedientes) están en la matriz y el whiteboard, pero sin ficha operativa completa.</p>
+    <p><strong>Firmas:</strong> no se permiten modificaciones mientras la solicitud está en Pendiente de Firmas. Llegada: validaciones DDN + PLD/Dictaminación (+ Directivo Facultado si aplica) OK.</p>
+    <p><strong>Riesgo dinámico:</strong> si el riesgo pasa de Bajo a Medio/Alto, se habilitan secciones nuevas; un cambio de riesgo antes de Firmas puede devolver a En Proceso (Datos).</p>
+    <p><strong>Rechazo:</strong> Cumplimiento, Jurídico o autorización — siempre con motivo. <strong>Aprobado:</strong> consulta, generar mantenimientos; modificar nivel de riesgo solo PLD y CCS.</p>
+  </div>
+
+  <h4 class="flow">Matriz de estados</h4>
+  <table>
+    <thead><tr><th>Estado / subestado</th><th>Onb PM</th><th>Onb CC</th><th>Mant PM</th><th>Mant CC</th></tr></thead>
+    <tbody>
+      <tr><td>Nuevo</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>En Proceso / Documentos</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>En Proceso / Datos</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Evaluación / GE</td><td>—</td><td>✓</td><td>—</td><td>—</td></tr>
+      <tr><td>Evaluación / DDN</td><td>✓</td><td>✓</td><td>—</td><td>—</td></tr>
+      <tr><td>Evaluación / PLD–Dictaminación</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Evaluación / Directivo Facultado</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Evaluación / Expedientes*</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Firmas pendientes</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Aprobado / Rechazado</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    </tbody>
+  </table>
+  <div class="notebox">Docs obligatorios/opcionales según tipo de cliente y actividad económica (p. ej. sindicatos). Captura: cliente o promotor sr/jr; el sistema habilita secciones por riesgo.</div>
+
+  <h4 class="flow">Onboarding Persona Moral (as-is)</h4>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Nuevo: crea solicitud
+  Nuevo --> Docs: carga documental
+  Docs --> Datos: docs obligatorios OK
+  Datos --> DDN: envía a evaluación
+  DDN --> PLD: OK DDN
+  DDN --> Datos: solicitud de ajustes
+  PLD --> RiesgoGate: dictaminación OK
+  PLD --> Datos: ajustes / cambio riesgo
+  PLD --> Rechazado: rechazo cumplimiento
+  state RiesgoGate <<choice>>
+  RiesgoGate --> Facultado: riesgo bloquea
+  RiesgoGate --> Firmas: no bloquea
+  Facultado --> Firmas: OK facultado
+  Facultado --> Rechazado: rechazo autorización
+  Firmas --> Aprobado: firmas completas
+  Firmas --> Rechazado: rechazo jurídico/firma
+  note right of Firmas: sin modificaciones en este estado
+  Aprobado --> [*]
+  Rechazado --> [*]
+  </pre>
+
+  <h4 class="flow">Onboarding Centro de Costos (as-is)</h4>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Nuevo: alta CC bajo padre
+  Nuevo --> Docs: docs según tipo MRS/DRS
+  Docs --> Datos: captura datos CC
+  Datos --> GE: evaluación Gestión Empresarial
+  GE --> DDN: OK GE
+  GE --> Datos: ajustes
+  DDN --> PLD: OK DDN
+  DDN --> Datos: ajustes
+  PLD --> RiesgoGate: dictaminación OK
+  PLD --> Datos: ajustes / cambio riesgo
+  PLD --> Rechazado: rechazo cumplimiento
+  state RiesgoGate <<choice>>
+  RiesgoGate --> Facultado: riesgo bloquea
+  RiesgoGate --> Firmas: no bloquea
+  Facultado --> Firmas: OK facultado
+  Facultado --> Rechazado: rechazo autorización
+  Firmas --> Aprobado: firmas OK
+  Firmas --> Rechazado: rechazo jurídico/firma
+  Aprobado --> [*]
+  Rechazado --> [*]
+  </pre>
+  <div class="notebox">Diferencia clave vs PM: el paso <strong>GE</strong> solo existe en onboarding CC (matriz Confluence). Post-aprobado, la activación operativa hacia EF/cuentas sigue siendo en gran parte manual o semi-manual (ops) — eso alimenta el desdoblamiento verificado/activo del Plan de transición.</div>
+
+  <h4 class="flow">Mantenimiento PM / CC (as-is)</h4>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Nuevo: abre mantenimiento
+  Nuevo --> Docs: docs a actualizar
+  Docs --> Datos: datos a corregir
+  Datos --> Expedientes: revisión expedientes
+  Expedientes --> PLD: dictaminación
+  PLD --> RiesgoGate: OK
+  PLD --> Datos: ajustes
+  PLD --> Rechazado: rechazo
+  state RiesgoGate <<choice>>
+  RiesgoGate --> Facultado: riesgo bloquea
+  RiesgoGate --> Firmas: no bloquea
+  Facultado --> Firmas: OK
+  Facultado --> Rechazado: rechazo autorización
+  Firmas --> Aprobado: firmas OK
+  Firmas --> Rechazado: rechazo jurídico/firma
+  Aprobado --> [*]
+  Rechazado --> [*]
+  </pre>
+  <div class="notebox">Sin GE ni DDN en mantenimiento. Expedientes* es el subestado de evaluación propio de este flujo. Desde Aprobado se pueden generar nuevos mantenimientos; PLD/CCS pueden modificar nivel de riesgo.</div>
+
+  <h4 class="flow">Happy path punta a punta hoy (ops real)</h4>
+  <pre class="mermaid">
+sequenceDiagram
+  participant Com as Comercial
+  participant Sicli as SICLI
+  participant Ops as Ops / GE / DDN
+  participant PLD as PLD
+  participant Mifiel as MiFiel
+  participant EF as EF monolito
+
+  Com->>Sicli: Crea solicitud PM o CC
+  Note over Sicli: Nuevo → Docs → Datos
+  Sicli->>Ops: Evaluación GE (solo CC) / DDN
+  Ops->>PLD: Dictaminación / riesgo
+  alt Riesgo bloquea
+    PLD->>Sicli: Directivo Facultado
+  end
+  PLD->>Sicli: Aprueba o pide ajustes (vuelve a Datos)
+  Sicli->>Mifiel: Firmas pendientes
+  Mifiel-->>Sicli: Firmado → Aprobado
+  Note over Ops,EF: Config cuenta / subcuenta / usuarios<br/>aún con fricción manual Excel-RPA-EF
+  Ops->>EF: Alta operativa (cuenta activa)
+  </pre>
+
+  <h4 class="flow">ABC Usuarios → EF (as-is)</h4>
+  <pre class="mermaid">
+flowchart LR
+  A[Captura usuario] --> B[Enviar a validar]
+  B --> C[Firmas MiFiel]
+  C --> D[Meltsan listas]
+  D --> E[Alta en EF]
+  E --> F[Vínculo empresas / CC]
+  </pre>
+  <div class="notebox">ABC Usuarios hoy vive en SICLI e integra MiFiel + Meltsan. En target esas piezas pasan a <strong>controles Maak</strong> (bindings) + IdP/core — no quedan embebidas como “módulo SICLI”.</div>
+
+
+  <!-- LUCID GLOBANT -->
+  <h2 class="section"><span class="kicker">Insumo Globant</span>Evaluación del Lucid “Experiencia Maak”</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Fuente: <span class="mono">documentos/Maak - Onboarding/Experiencia Maak.pdf</span> — User Journey de Elianeth Torres (feb 2026). Muy útil como inventario de touchpoints y como argumento de releases incrementales. Para el corte de dominios conviene leerlo como blueprint de experiencia (no como mapa de ownership): el Lucid agrupa bajo el nombre “Maak” recorridos que en la arquitectura actual se reparte entre Maak, core/Xook, EF y COE.</p>
+
+  <div class="callout">
+    <div class="callout-title">Aportes del Lucid</div>
+    <p><strong>Framing de release:</strong> Maak no es “un módulo técnico”; cada release debe generar valor operativo, permitir <em>apagar parte de SICLI</em>, operar en paralelo y bajar riesgo de migración.</p>
+    <p><strong>Etapas del journey del cliente</strong> (alto nivel): Descubrimiento → Consideración → onboarding (invitar / registrar prospecto / docs / PLD / firma) → configuración productos/usuarios → gestión de expediente / día a día → lealtad / fin de relación.</p>
+    <p><strong>Sub-etapas de onboarding explícitas:</strong> Invitación → Registro prospecto → Registro cliente → Carga documentos → Evaluación PLD → Firma contrato → Configuración productos → Configuración usuarios → Gestión expediente.</p>
+    <p><strong>Features que el journey asume</strong> (checklist, no diseño): OTP correo/teléfono, prueba de vida, OCR/NLP, consulta SAT/CSF por RFC, geolocalización (dispositivo + fiscal vía Maps), propietario real, matriz de riesgo, firmas MiFiel/mancomunada, dashboard comercial de prospectos, dashboard PLD, centros de costo, recordatorios por inactividad, alertas (docs vencidos, OFAC), bloqueos, Genesys ↔ Maak, fideicomisos/tipos especiales.</p>
+    <p><strong>Handoff a Xook:</strong> el propio Lucid ubica “activación de productos activa en Xook” / bloqueo hacia Xook — confirma que la cuenta operativa no es el núcleo de Maak.</p>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Alcance del Lucid vs corte de dominios</div>
+    <p>El journey describe a Maak como <strong>experiencia de ciclo de vida del cliente STP</strong>, incluyendo “mi día a día” (SPEI, operación). Eso es válido como blueprint de producto; para ownership de sistemas conviene alinear con el corte acordado: <strong>Maak = Persona/expediente/casos</strong>; <strong>core headless + Xook = productos/cuentas</strong>; <strong>EF = SPEI</strong>; <strong>COE/Genesys = servicio</strong>.</p>
+    <p>El Lucid funciona bien como service blueprint / inventario de capacidades por lanes. Mezcla CRM comercial (pipeline, landing), KYC, config de productos, soporte Genesys y operación — útil para no olvidar touchpoints; la decisión de qué sistema es dueño de cada uno se hace aparte.</p>
+  </div>
+
+  <pre class="mermaid">
+flowchart LR
+  subgraph globantJourney [Journey Globant - stages]
+    D[Descubrimiento]
+    C[Consideracion]
+    O[Onboarding KYC+firma]
+    P[Config productos y usuarios]
+    E[Gestion expediente]
+    L[Lealtad / fin relacion]
+  end
+  D -.->|CRM / comercial - fuera o ligero| M1[Maak solo invite]
+  C --> O
+  O --> Maak[Maak dueño]
+  P --> Xook[Xook + core headless]
+  E --> Maak
+  E -.->|si afecta cuenta| Xook
+  L -.->|baja cuenta| Xook
+  L -.->|cierre Persona| Maak
+  </pre>
+
+  <h3 class="sub">Decisiones respecto del Lucid</h3>
+  <table>
+    <thead><tr><th>Del Lucid</th><th>Decisión</th></tr></thead>
+    <tbody>
+      <tr><td>Estrategia “apagar SICLI por releases / paralelo”</td><td><span class="badge badge-green">Adoptar</span> — alinea F6 migración</td></tr>
+      <tr><td>Secuencia invite → docs → PLD → firma → config</td><td><span class="badge badge-green">Adoptar</span> — ya en F1; enriquecer con recordatorios/OTP/geo</td></tr>
+      <tr><td>Dashboard comercial de prospectos</td><td><span class="badge badge-green">Adoptar</span> — epic Maak (lectura)</td></tr>
+      <tr><td>Dashboard PLD + alertas post-alta</td><td><span class="badge badge-green">Adoptar</span> — Maak / Sistema PLD</td></tr>
+      <tr><td>Genesys ↔ Maak (tickets / remediación)</td><td><span class="badge badge-amber">Parcial</span> — COE + eventos; no meter Genesys dentro de Maak</td></tr>
+      <tr><td>Config productos / SPEI día a día / “toda la experiencia”</td><td><span class="badge badge-red">Rechazar como scope Maak</span> — Xook + core</td></tr>
+      <tr><td>Lista larga de features sin priorización</td><td><span class="badge badge-slate">Backlog input</span> — no roadmap</td></tr>
+    </tbody>
+  </table>
+
+
+  <!-- MAAK TO-BE -->
+  <h2 class="section"><span class="kicker">To-be</span>Maak — ClienteOS</h2>
+  <div class="section-rule"></div>
+
+  <h3 class="sub">Stack y deploy</h3>
+  <div class="grid-2">
+    <div class="card">
+      <strong>Aplicación</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Frontend + BFF: <strong>Next.js</strong> (no Angular del diseño SGC 2025)</li>
+        <li>APIs Maak en contenedores — contrato <strong>OpenAPI</strong></li>
+        <li>MCP Server (tools = acciones de dominio)</li>
+        <li>Orquestación: state machine / BPM (Camunda u opción light)</li>
+        <li>Auth: Keycloak / SSO interno (+ scopes API)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>Infra</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Deploy: <strong>AWS Fargate</strong> (ECS)</li>
+        <li>Docs: S3; secretos: Secrets Manager</li>
+        <li>OTP teléfono: SNS (gap típico de vendors)</li>
+        <li>Eventos hacia Xook/core: bus o webhooks firmados</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">Superficie de integración — OpenAPI + MCP</h3>
+  <p class="lead">Maak no es solo UI: es un <strong>sistema de record con API de primer orden</strong>. Cualquier consumidor autorizado (COE, core, Xook, Cursor, Claude, Slack) entra por el mismo contrato — no por scrapes ni pantallas.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <strong>OpenAPI (HTTP)</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Spec <span class="mono">openapi.yaml</span> versionada en el repo; generada/validada en CI</li>
+        <li>Portal de docs (Redoc/Swagger) + sandbox con auth de no-prod</li>
+        <li>Misma superficie que usa el BO Maak y el agente mail</li>
+        <li>Webhooks firmados para eventos (<span class="mono">PersonaOK</span>, gap, breach…)</li>
+        <li>Scopes OAuth2/mTLS por sistema (COE, Xook, rails, partners)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>MCP / conectores agentes</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Servidor <strong>MCP Maak</strong> que expone tools = acciones del dominio (no SQL crudo)</li>
+        <li>Clientes: <strong>Cursor</strong>, <strong>Claude</strong>, otros agentes MCP</li>
+        <li>Conector <strong>Slack</strong> (slash commands / bot) sobre las mismas tools</li>
+        <li>Auth: identidad del operador + scopes (lectura vs mutación vs override)</li>
+        <li>Toda tool call → <span class="mono">AuditEvent</span> (quién, desde qué cliente)</li>
+      </ul>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Canal</th><th>Ejemplos de uso</th><th>Restricción</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>OpenAPI</strong></td>
+        <td>COE pide snapshot de Persona; core confirma Account; partner sube Evidence; batch RecheckJob</td>
+        <td>Credencial de sistema + scopes; rate-limit; sin bypass de reglas BLOCK</td>
+      </tr>
+      <tr>
+        <td><strong>MCP → Cursor / Claude</strong></td>
+        <td>Ops/PLD/producto: “mostrá gaps del caso X”, “emití IntakeLink”, “estimá impacto de publicar Rule vN”, armar AdequacyPlan en borrador</td>
+        <td>Solo roles internos; mutaciones sensibles piden confirmación + rol (igual que BO)</td>
+      </tr>
+      <tr>
+        <td><strong>MCP / bot → Slack</strong></td>
+        <td>Alertas de cola HITL; “aprobar gap doc” con deep-link al BO; consulta estado de Persona sin entrar al portal</td>
+        <td>Canal allowlist; PII mínima en el mensaje; detalle en Maak vía link</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">Principio de integración</div>
+    <p><strong>Una API, muchos clientes.</strong> MCP y Slack no son puertas traseras: son adaptadores sobre OpenAPI/acciones de dominio. Si una acción no existe en OpenAPI, no existe en MCP.</p>
+    <p>Docs OpenAPI = contrato para que “cualquier otro sistema se conecte” con los accesos que Seguridad/IT otorguen. El MCP acelera a humanos+IA sobre ese mismo contrato.</p>
+  </div>
+
+  <pre class="mermaid">
+flowchart LR
+  subgraph clients [Consumidores]
+    BO[BO Maak]
+    COE[COE]
+    Core[Core / Xook]
+    Cur[Cursor / Claude MCP]
+    Slk[Slack bot]
+  end
+  subgraph maak [Maak]
+    MCP[MCP Server]
+    API[OpenAPI HTTP]
+    Dom[Acciones de dominio + RBAC + Audit]
+  end
+  BO --> API
+  COE --> API
+  Core --> API
+  Cur --> MCP
+  Slk --> MCP
+  MCP --> API
+  API --> Dom
+  </pre>
+
+  <div class="notebox"><strong>MVP:</strong> OpenAPI documentada de las acciones ONBOARDING + auth scopes (P0 del motor). <strong>R2:</strong> MCP server interno (Cursor/Claude) read-heavy + emit IntakeLink. <strong>R3+:</strong> Slack bot + tools de Recheck/Adequacy con guardrails. No exponer MCP a internet sin Zero Trust / allowlist.</div>
+
+  <div class="callout green">
+    <div class="callout-title">Corte MVP: Maak build + rails thin (no suite)</div>
+    <p><strong>Maak (STP)</strong>: Persona, diccionario controles/reglas, templates, ComplianceCase, agente mail, HITL, audit; post-MVP RecheckJob + AdequacyPlan. Vision/OCR documental in-house + HITL.</p>
+    <p><strong>Buy rails (bindings)</strong>: listas/PEP, face+liveness, acceso INE/RENAPO/SAT, firmas electrónicas. Idealmente vía API — no portal del vendor.</p>
+    <p><strong>Suite Complif/Niva</strong>: viable solo si la oferta headless supera en valor a la suma de rails; en caso contrario no se adquiere la plataforma completa.</p>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Controles Maak vs proveedores (MiFiel, Meltsan)</div>
+    <p>En to-be, <strong>listas</strong> y <strong>firmas</strong> son controles del diccionario Maak — no lógica embebida en SICLI ni journey del vendor suite.</p>
+    <ul class="bl" style="margin:8px 0 0;">
+      <li><strong>Screening / listas</strong> — control familia <span class="mono">LIST</span>. Binding actual de referencia: <strong>Meltsan</strong> (intercambiable por otro feed PEP/sanciones). Usado en onboarding, re-check y remediación; también si un apoderado/usuario se modela como Persona.</li>
+      <li><strong>Firmas electrónicas</strong> — control de evidencia/autorización. Binding actual de referencia: <strong>MiFiel</strong>. En Maak cubre firma de contrato / mancomunada del caso (<span class="mono">PENDING_SIGNATURE</span>). El mismo binding puede invocarse desde otros sistemas si hace falta firma operativa; el dueño del control de cumplimiento es Maak.</li>
+      <li><strong>Regla:</strong> el template declara <em>qué</em> control aplica; el <span class="mono">binding</span> declara <em>quién</em> lo ejecuta. Cambiar Meltsan o MiFiel no reescribe templates.</li>
+    </ul>
+  </div>
+
+  <h3 class="sub">Estados to-be (Maak)</h3>
+  <pre class="mermaid">
+stateDiagram-v2
+  [*] --> INVITED
+  INVITED --> REGISTERED: OTP email + teléfono
+  REGISTERED --> DOCS_IN_PROGRESS
+  DOCS_IN_PROGRESS --> DATA_IN_PROGRESS
+  DATA_IN_PROGRESS --> AUTO_CHECKS: vendor KYC
+  AUTO_CHECKS --> MANUAL_REVIEW: alertas / riesgo
+  AUTO_CHECKS --> PENDING_SIGNATURE: checks verdes
+  MANUAL_REVIEW --> PENDING_SIGNATURE: GE/DDN/PLD OK
+  MANUAL_REVIEW --> RETURNED_FOR_FIX: ajustes
+  RETURNED_FOR_FIX --> DOCS_IN_PROGRESS
+  MANUAL_REVIEW --> REJECTED
+  PENDING_SIGNATURE --> ACTIVATING: firmas OK
+  ACTIVATING --> ACTIVE: core confirma Account
+  ACTIVATING --> ACTIVATION_FAILED: reintento / ops
+  ACTIVE --> [*]
+  REJECTED --> [*]
+  </pre>
+
+  <h4 class="flow">F1 — Onboarding PM (to-be)</h4>
+  <pre class="mermaid">
+sequenceDiagram
+  participant Com as Comercial
+  participant Maak as Maak Next.js
+  participant KYC as Vendor KYC
+  participant PLD as PLD/DDN
+  participant Core as Core headless
+  participant Xook as Xook UI
+
+  Com->>Maak: Invite o ticket/mail
+  Maak->>KYC: Onboarding + docs + biometría
+  KYC-->>Maak: Expediente + semáforo
+  Maak->>PLD: Caso si aplica
+  PLD-->>Maak: Aprobado
+  Maak->>Maak: Firma contrato
+  Maak->>Core: PersonaOK + alta Account
+  Core-->>Maak: AccountReady
+  Maak->>Xook: Cliente activo para config productos
+  </pre>
+  <div class="notebox">En el camino to-be, el screening de listas y la firma de contrato son <strong>evaluaciones de controles Maak</strong> (bindings Meltsan / MiFiel u equivalentes), no pasos “fuera de banda” en SICLI.</div>
+
+  <h4 class="flow">F2 — Centro de costo DRS (to-be)</h4>
+  <pre class="mermaid">
+sequenceDiagram
+  participant Padre as Ops del padre
+  participant Maak as Maak
+  participant KYC as Vendor KYC
+  participant GE as GE
+  participant Core as Core headless
+
+  Padre->>Maak: Alta CC bajo parentPersonaId
+  Maak->>KYC: KYC Persona hija
+  KYC-->>Maak: Expediente hijo
+  Maak->>GE: Evaluación CC
+  GE-->>Maak: OK
+  Maak->>Core: CentroCostoPersonaAprobado
+  Core-->>Maak: Account CC bajo padre
+  </pre>
+
+  <h4 class="flow">F3 — Mantenimiento expediente</h4>
+  <pre class="mermaid">
+flowchart LR
+  T[Trigger riesgo o cambio material] --> P[Prefill expediente]
+  P --> C[Cliente confirma]
+  C --> R[Re-checks vendor + reglas STP]
+  R --> F[Firmas si aplica]
+  F --> E[CustomerUpdated]
+  E --> Core[Core / Xook si afecta operación]
+  </pre>
+
+  <h4 class="flow">F4–F5 — ABC, bloqueo, baja</h4>
+  <p><strong>ABC Usuarios no permanece en SICLI ni se mueve entero a Maak.</strong> Alta de login/credenciales → IdP / servicio de usuarios; vínculo y permisos sobre cuenta → core vía Xook. Si el operador se modela como Persona (o requiere screening de cumplimiento), Maak aplica los mismos controles de <strong>listas</strong> (binding Meltsan u otro) y, si el caso lo exige, <strong>firma</strong> (binding MiFiel) — sin que Maak sea dueño del password.</p>
+  <p>Bloqueo/cancelación de cuenta: caso multi-área → evento al core. Configs sensibles (traspaso final, cuentas terceros): dual control en capa de cuentas.</p>
+
+  <h4 class="flow">F6 — Migración SICLI → Maak</h4>
+  <pre class="mermaid">
+flowchart LR
+  A[Inventario + scoring calidad] --> B[Golden record + remediación PLD]
+  B --> C[Shadow read]
+  C --> D[Dual write]
+  D --> E[Cutover por cohorte]
+  E --> F[SICLI read-only]
+  </pre>
+
+  <!-- ROADMAP -->
+
+  <!-- RELEASE STRATEGY 29-jul -->
+  <h2 class="section"><span class="kicker">Releases</span>Priorización por volumen y facilidad</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Criterio acordado en Maak v3 (29-jul): atacar primero el caso de <strong>mayor volumen</strong> y <strong>más fácil de implementar</strong>. No comprar por presión; no negociar precio de vendor hasta cerrar MVP y reqs técnicos.<span class="fn">Maak Versión v3 — 29-jul-2026 (matriz Niva/Complif, scope MVP).</span></p>
+
+  <div class="callout red">
+    <div class="callout-title">Canal de ingreso prioritario</div>
+    <p>La <strong>gran mayoría</strong> del onboarding ingresa por <strong>correo/ticket</strong>, no por portal: la inestabilidad histórica de SICLI desplazó la carga hacia operaciones, que completa el alta en nombre del cliente.</p>
+    <p>Flujo hoy: mail con docs → analista clasifica y carga en SICLI → el sistema bloquea si falta info. Rechazos por INE cortada/vencida/incompleta. Existe un bot parcial que falla si el paquete no viene completo.</p>
+    <p><strong>Riesgo regulatorio severo:</strong> subcuentas/CC que pasan <em>sin</em> KYC/KYB — un auditor podría paralizar operaciones. Eso define la urgencia del MVP.</p>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">TAT / KYC → unlock comercial (no solo compliance)</div>
+    <p>Hoy el onboarding tarda <strong>12–15 días hábiles</strong> y parte del volumen (CC/subcuentas) pasa sin controles. Eso no es solo deuda operativa: <strong>frena crecimiento sobre una base que ya existe</strong> (+11,000 clientes STP). Cada día de TAT y cada hueco KYC son fricción al alta, a la expansión (más CC bajo el mismo padre) y al cross-sell de productos del grupo.</p>
+    <p><strong>Cadena causal que Maak ataca:</strong></p>
+    <ul class="bl" style="margin:8px 0 0;">
+      <li><strong>KYC completo y auditado en CC</strong> → deja de haber riesgo de freno regulatorio que paralice la operación comercial.</li>
+      <li><strong>Menor TAT (agente + checks + IntakeLink + HITL tipado)</strong> → más altas y expansiones por unidad de tiempo de Ops/Comercial, sin contratar headcount proporcional.</li>
+      <li><strong><span class="mono">PersonaOK</span> reutilizable</strong> → la misma identidad verificada habilita cuenta SPEI hoy y, con deltas de reglas, elegibilidad a crédito (Sttega) / captación (SOFIPO) / partners sin rehacer el expediente desde cero.</li>
+    </ul>
+    <p style="margin-top:10px;margin-bottom:0;">Medir el MVP no solo por “apagamos un pedazo de SICLI”, sino por: <strong>% CC nuevos con KYC = 100%</strong>, TAT p50/p90 por tipo, altas/expansiones por FTE ops, y (post-MVP) tiempo desde Persona verificada hasta oferta de segundo producto del grupo.</p>
+  </div>
+
+  <div class="statstrip">
+    <div class="stat"><div class="stat-num">~17</div><div class="stat-label">Tipos de alta (sectores)</div></div>
+    <div class="stat"><div class="stat-num">~15</div><div class="stat-label">Estándar (Pareto MVP)</div></div>
+    <div class="stat"><div class="stat-num">50–80</div><div class="stat-label">Cuentas padre / mes</div></div>
+    <div class="stat"><div class="stat-num">CC≫</div><div class="stat-label">Volumen CC recurrente</div></div>
+  </div>
+
+  <h3 class="sub">Tipos de cliente — cómo particionar</h3>
+  <table>
+    <thead><tr><th>Segmento</th><th>Qué es</th><th>Release</th></tr></thead>
+    <tbody>
+      <tr><td><strong>~15 tipos estándar</strong></td><td>PM / CC DRS “normales” (mismo paquete documental base). Juan Pablo entrega lista + % por sector.</td><td><span class="badge badge-green">MVP → R2</span></td></tr>
+      <tr><td><strong>~2 con validaciones extra</strong></td><td>Ej. SOFOMs (Cipress) y similares</td><td><span class="badge badge-amber">R3</span></td></tr>
+      <tr><td><strong>Edge RFP 1.8</strong></td><td>Fideicomisos, sindicatos, asociaciones, extranjeros, gobierno, crypto (~20% resto)</td><td><span class="badge badge-slate">R4+</span></td></tr>
+      <tr><td><strong>Participantes indirectos</strong></td><td>Revolut, Nu, Ualá, bancos — problema distinto</td><td><span class="badge badge-slate">Después</span></td></tr>
+    </tbody>
+  </table>
+  <div class="notebox">Pendiente operativo: tabla de los 17 sectores con requerimientos documentales y % de casos (owner Juan Pablo). Hasta que llegue, el orden de release se fija por <strong>canal mail/CC estándar</strong>, no por inventar los 17 nombres.</div>
+
+  <h3 class="sub">Orden de releases propuesto</h3>
+  <table>
+    <thead><tr><th>Release</th><th>Qué entra</th><th>Por qué (volumen × facilidad)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>MVP</strong></td>
+        <td>
+          (1) Diccionario controles/reglas + templates PM/CC (P0–P2)<br>
+          (2) <strong>Agente de ingesta</strong> mail/Jira → expediente Maak<br>
+          (3) Checks automáticos posibles + <strong>cola HITL</strong> interna<br>
+          (4) <strong>CC DRS</strong> (prioridad volumen) y cuenta padre estándar — templates distintos, mismo motor<br>
+          (5) Adapter inyección a SICLI (sin tocar su código a ciegas)
+        </td>
+        <td>Canal dominante = mail; prioridad regulatoria = CC con KYC; ~15 tipos estándar; reduce riesgo de incumplimiento de inmediato.</td>
+      </tr>
+      <tr>
+        <td><strong>R2</strong></td>
+        <td>Portal self-serve (invite + carga) para los mismos tipos; OCR prefill + OTP; dashboard comercial de cola</td>
+        <td>Misma regla de negocio; baja carga ops cuando el cliente sí self-serve.</td>
+      </tr>
+      <tr>
+        <td><strong>R3</strong></td>
+        <td>Tipos con validaciones adicionales (SOFOMs, etc.); más controles en el configurador</td>
+        <td>Bajo volumen relativo; más reglas = más costo.</td>
+      </tr>
+      <tr>
+        <td><strong>R4</strong></td>
+        <td>Fideicomisos / sindicatos / extranjeros / gobierno / crypto</td>
+        <td>Edge RFP; complejidad documental alta.</td>
+      </tr>
+      <tr>
+        <td><strong>R5+</strong></td>
+        <td>Participantes indirectos; mantenimiento expediente; ABC/bloqueos (con Xook/core); apagar SICLI por cohortes</td>
+        <td>Fuera del “onboarding puro”; depende de arquitectura cuentas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre class="mermaid">
+flowchart TB
+  subgraph mvp [MVP - max volumen x facilidad]
+    Mail[Mail / ticket Jira]
+    Agent[Agente ingesta]
+    Rules[Evaluator templates]
+    Auto[Checks automaticos]
+    Hitl[Cola HITL Maak]
+    Sicli[Adapter SICLI]
+    Mail --> Agent --> Rules
+    Rules --> Auto --> Hitl
+    Hitl --> Sicli
+  end
+  subgraph later [Releases siguientes]
+    Portal[Portal self-serve]
+    Edge[Tipos edge / PI]
+    Core[PersonaOK a core headless]
+    Portal --> Rules
+    Edge --> Rules
+    Hitl --> Core
+  end
+  </pre>
+
+  <h3 class="sub">Agente mail/ticket → Maak (HITL)</h3>
+  <p>El MVP no depende de adopción de portal. Parte del canal que ya concentra el volumen (mail/ticket).</p>
+  <pre class="mermaid">
+sequenceDiagram
+  participant C as Cliente / Comercial
+  participant J as Mail o Jira
+  participant A as Agente Maak
+  participant R as Motor de reglas
+  participant V as Vendor KYC / APIs
+  participant H as Analista HITL
+  participant S as SICLI adapter
+
+  C->>J: Docs + datos por ticket
+  J->>A: Nuevo caso (adjuntos)
+  A->>A: Clasifica tipo alta / CC vs padre
+  A->>R: Resuelve template + reglas del tipo
+  A->>V: Checks automaticos posibles
+  V-->>A: Semaforo + evidencias
+  A->>H: Cola interna: OK / faltante / dudoso
+  H->>H: Completa, corrige, aprueba o rechaza
+  H->>S: Paquete listo inyectado a SICLI
+  Note over A,H: Nada avanza a cuenta sin KYC verde o override auditado
+  </pre>
+  <ul class="bl">
+    <li><strong>Automático cuando se pueda:</strong> tipo de doc, vencimiento, legibilidad, RFC→SAT/CSF, CURP/RENAPO, listas, match OCR vs declarado, geo si hay señal.</li>
+    <li><strong>HITL obligatorio cuando:</strong> paquete incompleto, INE dudosa, poderes/directores no cuadran, riesgo medio/alto, override.</li>
+    <li><strong>Anti-regresión:</strong> el agente <em>no</em> puede crear CC/subcuenta operativa sin pasar el perfil KYC del tipo — cierra el hueco regulatorio actual.</li>
+    <li><strong>Rails thin:</strong> el motor llama bindings (listas / face / institucionales); no depende de portal del vendor.</li>
+  </ul>
+
+  <h4 class="flow">Dos superficies: Backoffice HITL ↔ Cliente (intake link)</h4>
+  <p>Todo flujo de aprobación combina <strong>pantallas BO</strong> (analista) y <strong>pantallas cliente</strong> generadas por Maak. Cuando el HITL detecta faltantes, no se improvisa un mail genérico: se abre un <span class="mono">IntakeLink</span> scoped al gap.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <strong>Backoffice (HITL)</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Ve expediente completo, semáforo por regla, evidencias, overrides</li>
+        <li>Acciones: aprobar / rechazar / returnForFix / pedir gate GE·PLD</li>
+        <li><span class="mono">returnForFix</span> genera gaps tipados (regla + campo/doc faltante)</li>
+        <li>Emite / reenvía IntakeLink; ve si el cliente abrió/subió</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>Cliente — IntakeLink (sin login)</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>URL opaca: <span class="mono">/i/{token}</span> — si tenés el link, entrás</li>
+        <li><strong>Write-only:</strong> solo pide lo faltante; <em>no muestra</em> datos ya cargados ni docs previos</li>
+        <li>Al submit → nuevas Evidence + re-evaluación; link se consume o rota</li>
+        <li>Mismo template/evaluator que el portal logueado</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">IntakeLink write-only — controles de seguridad</div>
+    <p>El link es un <strong>capability token</strong>, no una sesión de expediente: permite únicamente aportar lo solicitado, sin lectura de PII preexistente, reduciendo el impacto si el correo se reenvía o se filtra.</p>
+    <p>Controles mínimos: token opaco (no caseId en claro), TTL corto (p.ej. 72h), single-use o rotación en cada submit, scope = lista de <span class="mono">gapIds</span>, rate-limit, audit de open/submit, HTTPS only, sin prefill de datos sensibles en querystring. Opcional: step-up OTP al mail ya conocido del caso si el gap es de alto riesgo (poderes, biometría).</p>
+  </div>
+
+  <pre class="mermaid">
+sequenceDiagram
+  participant C as Cliente
+  participant Mail as Mail o ticket
+  participant BO as Backoffice HITL
+  participant Maak as Maak
+  participant IL as IntakeLink
+  participant Eval as Evaluator
+
+  C->>Mail: Docs iniciales
+  Mail->>Maak: Agente crea ComplianceCase
+  Maak->>Eval: evaluateAll
+  Eval-->>BO: FALLA docs o poderes
+  BO->>BO: returnForFix gaps tipados
+  BO->>Maak: issueIntakeLink gaps
+  Maak->>C: Mail con path i-token sin PII en URL
+  C->>IL: Abre IntakeLink
+  Note over IL: Pantalla sin contexto sensible - solo gaps
+  C->>IL: Sube doc o completa campo
+  IL->>Maak: Evidence.create write-only
+  Maak->>Eval: rerun reglas del gap
+  Eval-->>BO: Semaforo actualizado
+  alt PASS
+    BO->>Maak: advanceGate o approve
+  else aun FAIL
+    BO->>Maak: nuevo IntakeLink token rotado
+  end
+  </pre>
+
+  <table>
+    <thead><tr><th>Canal</th><th>Auth</th><th>Qué ve</th><th>Qué puede hacer</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Portal self-serve</strong> (R2)</td>
+        <td>OTP / sesión</td>
+        <td>Progreso del alta (campos propios); no ve dictamen PLD interno</td>
+        <td>Carga completa inicial + respuestas a gaps</td>
+      </tr>
+      <tr>
+        <td><strong>IntakeLink</strong> (MVP+)</td>
+        <td>Token opaco en URL (sin login)</td>
+        <td><em>Nada</em> del expediente previo — solo labels del gap (“Subí el poder actualizado”)</td>
+        <td>Upload / campos scoped; submit una vez</td>
+      </tr>
+      <tr>
+        <td><strong>Backoffice HITL</strong></td>
+        <td>SSO interno + rol</td>
+        <td>Expediente, evidencias, evaluaciones, audit</td>
+        <td>Decidir, override, emitir links, gates</td>
+      </tr>
+      <tr>
+        <td><strong>Agente mail</strong></td>
+        <td>Sistema</td>
+        <td>N/A (ingesta)</td>
+        <td>Crear caso, adjuntar Evidence, encolar HITL</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">Riesgos de diseño (IntakeLink)</div>
+    <p><strong>Mostrar el expediente en el magic link</strong> (“así el cliente recuerda qué mandó”) → fuga si el link circula. Mejor re-pedir o etiquetar el gap sin echo de PII.</p>
+    <p><strong>Token = caseId predecible</strong> → enumeración. Usar 128+ bits random, almacenar solo hash.</p>
+    <p><strong>Link eterno</strong> → si el cliente termina, revocar; si vence, el BO reemite.</p>
+    <p><strong>WhatsApp con adjunto + “contestá acá”</strong> sin caso Maak → pierde audit y evaluator.</p>
+  </div>
+
+
+  <h3 class="sub">Configurador de reglas y controles</h3>
+  <p class="lead">Modelo: <strong>diccionario reutilizable</strong> + <strong>templates de caso</strong> que lo componen. No embebemos reglas por tipo de alta en código. Tres capas — no dos.</p>
+
+  <div class="callout">
+    <div class="callout-title">Capas del motor</div>
+    <p><strong>1. Controles</strong> (átomos del diccionario): “validar INE”, “consulta SAT”, “listas”, “exigir acta”, “KYC de apoderado”. Sin umbral ni workflow.</p>
+    <p><strong>2. Reglas</strong> (política sobre un control): obligatorio / advisory, bloquea o no, umbral, override quién, vigencia, binding a vendor/API.</p>
+    <p><strong>3. Templates de caso</strong> (PM estándar, CC DRS, PFAE…): etapas ordenadas + qué reglas cuelgan + parámetros locales + gates HITL (GE/DDN/PLD/facultado).</p>
+  </div>
+
+  <pre class="mermaid">
+flowchart TB
+  subgraph dict [Diccionario]
+    C[Controles atomicos]
+    R[Reglas = politica sobre control]
+    C --> R
+  end
+  subgraph tpl [Templates de caso]
+    T0[Base PM estandar]
+    T1[CC DRS = base + delta]
+    T2[SOFOM = base + delta]
+    T0 --> T1
+    T0 --> T2
+  end
+  R -->|"adjunto + params"| T0
+  T0 --> Runtime[Agente / Portal / HITL]
+  T1 --> Runtime
+  T2 --> Runtime
+  </pre>
+
+  <div class="grid-2">
+    <div class="card">
+      <strong>Incluido en el diccionario</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Controles y reglas versionados</li>
+        <li>Parámetros tipados (listas, umbrales, docs)</li>
+        <li>Binding vendor (Niva / propio / FaceTec)</li>
+        <li>Severidad y política de override</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>Excluido del diccionario</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Máquina de estados del caso (workflow)</li>
+        <li>Adapter SICLI / inyección</li>
+        <li>“Quién aprueba en ops” como hardcode</li>
+        <li>UI del portal o del agente</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">Reglas de diseño</div>
+    <p><strong>Herencia, no copia.</strong> Template base → delta (CC DRS, SOFOM). Evita 17 clones divergentes.</p>
+    <p><strong>Adjuntar con parámetros.</strong> Misma regla “listas” en CC vs padre puede cambiar severidad; el link template→regla lleva config, no solo un boolean.</p>
+    <p><strong>Un solo consumidor lógico.</strong> Agente, portal y HITL evalúan el mismo template versionado. Si un control no está en el diccionario, no existe.</p>
+    <p><strong>Nuevos tipos = nuevo template</strong> (o clone + delta), no un fork de código.</p>
+    <p><strong>Proveedor ≠ control.</strong> Meltsan y MiFiel son bindings; los átomos “listas” y “firma electrónica” viven en el diccionario Maak.</p>
+  </div>
+
+  <h4 class="flow">Persona como capa compartida del grupo — reglas dinámicas por entidad / servicio</h4>
+  <p>El MVP de Maak corre sobre <strong>STP (IFPE)</strong>: altas SPEI, CC DRS, gates GE/PLD. Eso no implica que Persona sea “un sistema de STP”. El diccionario (Control → Rule → CaseTemplate con herencia) se diseña para que <strong>la misma Persona</strong> acumule evidencia una vez y cada entidad o servicio del grupo declare, por configuración, qué reglas adicionales exige para <em>su</em> producto — sin clonar un segundo ClienteOS ni re-capturar el expediente.</p>
+
+  <div class="callout">
+    <div class="callout-title">Cómo se extiende sin reescribir el motor</div>
+    <p><strong>1. Persona estable.</strong> Identidad, relaciones (UBO, apoderados, padre/CC), Evidence e historial de <span class="mono">RuleEvaluation</span> viven en Maak. No se duplican por entidad legal.</p>
+    <p><strong>2. Templates = política del servicio.</strong> Cada producto/entidad que quiera consumir cumplimiento adjunta un template (o un delta sobre uno base): p. ej. <span class="mono">T-STP-ONB-PM</span> (hoy), luego <span class="mono">T-STTEGA-CREDIT-ELIG</span>, <span class="mono">T-SOFIPO-ONB</span>, o un template de partner. Mismo evaluator, mismo HITL, mismos bindings.</p>
+    <p><strong>3. Reglas dinámicas por contexto.</strong> Al abrir un caso (o al pedir elegibilidad a un servicio), el runtime resuelve: <em>tipo de Persona + entidad solicitante + servicio</em> → template(s) aplicables → lista ordenada de reglas. Se pueden <strong>publicar reglas nuevas</strong> (o cambiar severidad/params) cuando Sttega, la SOFIPO o un producto SPEI nuevo lo necesiten — sin deploy de producto salvo que aparezca un Control átomo nuevo.</p>
+    <p><strong>4. Reuso de evidencia.</strong> Si la Persona ya pasó listas / SAT / poderes para STP, el template de crédito solo pide el delta (p. ej. estados financieros, cash-flow, scoring docs). El caso nuevo deja traza; no se “pisa” el alta histórica.</p>
+    <p><strong>5. Fuera del MVP runtime, dentro del diseño.</strong> No se construye onboarding Sttega/SOFIPO en el primer corte. Sí se evita pintar el schema al rincón: <span class="mono">caseKind</span>, atributos de Persona, y templates con <span class="mono">extends</span> deben admitir <em>entidad/servicio</em> como dimensión de resolución desde el día 0.</p>
+  </div>
+
+  <pre class="mermaid">
+flowchart LR
+  subgraph maak [Maak - Persona + diccionario]
+    P[Persona + Evidence]
+    D[Controles / Reglas]
+    Tstp[T-STP onboarding]
+    Tcred[T-Sttega credito - futuro]
+    Tsof[T-SOFIPO - futuro]
+    D --> Tstp
+    D --> Tcred
+    D --> Tsof
+    Tstp --> Ev[Evaluator + HITL]
+    Tcred --> Ev
+    Tsof --> Ev
+    P --> Ev
+  end
+  Ev -->|PersonaOK SPEI| Core[Core / Xook]
+  Ev -->|elegibilidad| Sttega[Sttega LaaS]
+  Ev -->|onboarding captacion| Sofipo[SOFIPO]
+  </pre>
+
+  <div class="notebox"><strong>Implicación de diseño (P0 schema):</strong> el link template↔regla (y/o el CaseTemplate) debe poder filtrar o etiquetar por <span class="mono">entityScope</span> / <span class="mono">serviceCode</span> (ej. <span class="mono">STP_IFPE</span>, <span class="mono">STTEGA</span>, <span class="mono">SOFIPO</span>). El MVP solo materializa templates STP; el campo existe para no forzar un fork cuando llegue el segundo consumidor.</div>
+
+  <h4 class="flow">Catálogo inicial de controles (familias)</h4>
+  <table>
+    <thead><tr><th>Familia</th><th>Ejemplos de control (átomo)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Paquete documental</strong></td><td>Acta / instrumento inscrito; CSF/RFC; poderes RL; estructura accionaria; INE/ID; comprobante domicilio; docs por actividad</td></tr>
+      <tr><td><strong>Identidad / KYC persona</strong></td><td>OCR ID; INE lista nominal; CURP/RENAPO; biometría / prueba de vida; OTP email+tel</td></tr>
+      <tr><td><strong>Empresa / KYB</strong></td><td>RFC→SAT + CSF; domicilio fiscal; geo dispositivo; geo/foto domicilio</td></tr>
+      <tr><td><strong>Estructura de control</strong></td><td>Propietario real; accionistas anidados; <strong>directores/apoderados como Persona con KYC propio</strong>; poderes vs firmantes</td></tr>
+      <tr><td><strong>Listas y screening</strong></td><td>OFAC, 69/69-B, ONU, UE, PEP MX, lista negra interna, adverse media, cruce histórico STP. <strong>Binding ref. hoy: Meltsan</strong> (u otro feed) — control Maak, no módulo SICLI.</td></tr>
+      <tr><td><strong>Firmas</strong></td><td>Firma simple / mancomunada / escalonada del contrato u acto. <strong>Binding ref. hoy: MiFiel</strong> — control Maak en el caso (<span class="mono">PENDING_SIGNATURE</span>), no lógica suelta en SICLI.</td></tr>
+      <tr><td><strong>Riesgo / gates</strong></td><td>Matriz riesgo; cuestionarios; gate GE / DDN / PLD / facultado (la ruta vive en el template)</td></tr>
+      <tr><td><strong>Post-alta</strong></td><td>Docs por vencer; recálculo riesgo; alertas; bloqueo → Xook/core — R5+, no MVP</td></tr>
+    </tbody>
+  </table>
+
+  <h4 class="flow">Plan de implementación</h4>
+  <table>
+    <thead><tr><th>Fase</th><th>Qué se entrega</th><th>Criterio de hecho</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>P0 — Modelo + schema</strong></td>
+        <td>
+          Entidades: <span class="mono">Control</span>, <span class="mono">Rule</span>, <span class="mono">CaseTemplate</span>, <span class="mono">TemplateRuleLink</span> (params), herencia <span class="mono">extends</span>.<br>
+          Versionado + effective-from. Admin mínimo (JSON/YAML o UI crud light). ADR del motor.
+        </td>
+        <td>Se puede crear un control, una regla y un template base sin tocar código de onboarding.</td>
+      </tr>
+      <tr>
+        <td><strong>P1 — Diccionario MVP (~15–25 controles)</strong></td>
+        <td>
+          Controles del happy path: paquete docs PM/CC, SAT/CSF, INE/RENAPO si aplica, <strong>listas (binding Meltsan u otro)</strong>, <strong>firma (binding MiFiel)</strong>, PR umbral, apoderado-como-Persona, gates GE/PLD.<br>
+          Reglas con severidad block/advisory + override auditado.
+        </td>
+        <td>Catálogo publicado; cada control tiene owner (PLD/Ops) y binding (vendor/API/manual).</td>
+      </tr>
+      <tr>
+        <td><strong>P2 — Templates MVP</strong></td>
+        <td>
+          <strong>T-PM-STD</strong> (base), <strong>T-CC-DRS</strong> (hereda + gate GE + Persona hija), <strong>T-PADRE-STD</strong> si difiere solo en params.<br>
+          Evaluator runtime: dado <span class="mono">caseType</span> → resuelve herencia → lista ordenada de reglas + evidencias faltantes.
+        </td>
+        <td>Agente mail y cola HITL consumen el evaluator; semáforo por regla visible en UI.</td>
+      </tr>
+      <tr>
+        <td><strong>P3 — Canales sobre el mismo motor</strong></td>
+        <td>Portal R2 reusa templates; mismos IDs de regla en ticket, portal y audit log.</td>
+        <td>Cero lógica de “qué docs pide PM” duplicada fuera del template.</td>
+      </tr>
+      <tr>
+        <td><strong>P4 — Deltas de tipo</strong></td>
+        <td>SOFOMs y similares = template hijo + 2–5 reglas nuevas (no fork). Edge RFP 1.8 después.</td>
+        <td>Alta de un tipo nuevo &lt; config + QA, sin deploy de producto salvo control nuevo.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="ph">P0–P1</div>
+      <div class="ph-t">Fundación</div>
+      <div class="ph-d">Schema + diccionario chico. Sin esto no hay agente ni portal confiables.</div>
+    </div>
+    <div class="phase">
+      <div class="ph">P2</div>
+      <div class="ph-t">Templates MVP</div>
+      <div class="ph-d">PM + CC DRS con herencia. Evaluator en el camino crítico del HITL.</div>
+    </div>
+    <div class="phase">
+      <div class="ph">P3–P4</div>
+      <div class="ph-t">Escala</div>
+      <div class="ph-d">Portal + deltas SOFOM/edge. Crecer templates, no código.</div>
+    </div>
+  </div>
+
+  <div class="notebox"><strong>Orden de construcción:</strong> P0→P1→P2 en el MVP (antes o en paralelo al agente). El agente clasifica el tipo, resuelve el template y ejecuta reglas. Sin diccionario, la ingesta no garantiza cumplimiento.</div>
+
+  <h4 class="flow">Data model — entidades y relaciones</h4>
+  <p>El schema se diseña completo; el <strong>MVP solo materializa onboarding</strong> (<span class="mono">ComplianceCase</span> tipo <span class="mono">ONBOARDING</span>). Re-chequeos y planes de adecuación entran después, pero <em>las entidades ya existen</em> para no pintar al rincón el motor.</p>
+
+  <pre class="mermaid">
+erDiagram
+  PERSONA ||--o{ RELACION_PERSONA : "padre/hijo/apoderado"
+  PERSONA ||--o{ EVIDENCE : "tiene"
+  PERSONA ||--o{ COMPLIANCE_CASE : "sujeto"
+  CONTROL ||--o{ RULE : "politica"
+  RULE ||--o{ TEMPLATE_RULE_LINK : "adjunto"
+  CASE_TEMPLATE ||--o{ TEMPLATE_RULE_LINK : "compone"
+  CASE_TEMPLATE ||--o| CASE_TEMPLATE : "extends"
+  CASE_TEMPLATE ||--o{ COMPLIANCE_CASE : "instancia"
+  COMPLIANCE_CASE ||--o{ RULE_EVALUATION : "resultados"
+  RULE ||--o{ RULE_EVALUATION : "evaluada"
+  EVIDENCE ||--o{ RULE_EVALUATION : "soporta"
+  RULE ||--o{ RECHECK_JOB : "dispara"
+  RECHECK_JOB ||--o{ COMPLIANCE_CASE : "abre casos"
+  ADEQUACY_PLAN ||--o{ ADEQUACY_ENROLLMENT : "enrola"
+  PERSONA ||--o{ ADEQUACY_ENROLLMENT : "en plan"
+  ADEQUACY_ENROLLMENT ||--o| COMPLIANCE_CASE : "remediacion"
+  COMPLIANCE_CASE ||--o{ AUDIT_EVENT : "traza"
+  </pre>
+
+  <table>
+    <thead><tr><th>Entidad</th><th>Qué es</th><th>Campos clave</th><th>MVP</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Persona</strong></td>
+        <td>Persona física o moral en el dominio cliente (padre, CC DRS, apoderado, accionista relevante).</td>
+        <td><span class="mono">id, personaType, legalName, rfc/curp, status, parentPersonaId?, riskScore, attributes{}</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>RelacionPersona</strong></td>
+        <td>Vínculos tipados (PARENT_OF, APODERADO_DE, UBO_OF, DIRECTOR_OF).</td>
+        <td><span class="mono">fromPersonaId, toPersonaId, relationType, effectiveFrom/To, evidenceIds[]</span></td>
+        <td><span class="badge badge-green">Sí</span> (CC + apoderados)</td>
+      </tr>
+      <tr>
+        <td><strong>Control</strong></td>
+        <td>Átomo del diccionario. No tiene umbral.</td>
+        <td><span class="mono">id, family, name, bindingType (API|VENDOR|VISION|MANUAL|LIST), bindingRef, inputSchema, outputSchema, owner</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>Rule</strong></td>
+        <td>Política versionada sobre un Control.</td>
+        <td><span class="mono">id, controlId, version, severity (BLOCK|ADVISORY), overrideRole, paramsDefault{}, effectiveFrom, status (DRAFT|ACTIVE|RETIRED)</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>CaseTemplate</strong></td>
+        <td>Definición de un tipo de caso (onboarding PM, CC DRS, …). Hereda.</td>
+        <td><span class="mono">id, caseKind, caseType, entityScope?, serviceCode?, extendsTemplateId?, version, stages[], status</span> — MVP solo <span class="mono">STP_IFPE</span>; campos listos para deltas Sttega/SOFIPO</td>
+        <td><span class="badge badge-green">Sí</span> (ONBOARDING)</td>
+      </tr>
+      <tr>
+        <td><strong>TemplateRuleLink</strong></td>
+        <td>Adjunta una Rule a un template con params locales.</td>
+        <td><span class="mono">templateId, ruleId, stageKey, order, required, params{}, onFailGate?</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>ComplianceCase</strong></td>
+        <td>Instancia runtime. Unifica onboarding, re-check y remediación.</td>
+        <td><span class="mono">id, kind (ONBOARDING|RECHECK|REMEDIATION), personaId, templateId@version, channel (MAIL|PORTAL|BATCH), state, dueAt?, planId?</span></td>
+        <td><span class="badge badge-green">Sí</span> solo ONBOARDING</td>
+      </tr>
+      <tr>
+        <td><strong>Evidence</strong></td>
+        <td>Artefacto (doc, selfie, respuesta API, override). Inmutable + hash.</td>
+        <td><span class="mono">id, personaId, type, storageUri, extracted{}, source, capturedAt, hash</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>IntakeLink</strong></td>
+        <td>Magic link write-only para que el cliente complete gaps sin login ni echo de PII.</td>
+        <td><span class="mono">id, caseId, tokenHash, gapIds[], expiresAt, usedAt?, maxUses, createdBy</span></td>
+        <td><span class="badge badge-green">Sí</span> (con HITL)</td>
+      </tr>
+      <tr>
+        <td><strong>CaseGap</strong></td>
+        <td>Faltante tipado pedido por HITL o por evaluator (regla + campo/doc).</td>
+        <td><span class="mono">id, caseId, ruleId, fieldKey?, docType?, labelCliente, status</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>RuleEvaluation</strong></td>
+        <td>Resultado de una regla en un caso (semaforo).</td>
+        <td><span class="mono">caseId, ruleId@version, status (PASS|FAIL|SKIP|ERROR|OVERRIDDEN), evidenceIds[], raw{}, evaluatedAt, actor</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+      <tr>
+        <td><strong>RecheckJob</strong></td>
+        <td>Job masivo cuando cambia una Rule/Template o lista.</td>
+        <td><span class="mono">id, trigger (RULE_PUBLISH|LIST_UPDATE|MANUAL), ruleIds[], cohortFilter{}, strategy (OPEN_CASE|FLAG), createdBy</span></td>
+        <td><span class="badge badge-amber">Schema sí / runtime R3+</span></td>
+      </tr>
+      <tr>
+        <td><strong>AdequacyPlan</strong></td>
+        <td>Campaña: “todos los que cumplan X deben remediar antes de fecha Y o se bloquea”.</td>
+        <td><span class="mono">id, name, cohortFilter{}, remediationTemplateId, deadline, onBreach (BLOCK_PERSONA|BLOCK_ACCOUNT|ALERT), status</span></td>
+        <td><span class="badge badge-amber">Schema sí / runtime R3+</span></td>
+      </tr>
+      <tr>
+        <td><strong>AdequacyEnrollment</strong></td>
+        <td>Persona enrolado en un plan + progreso.</td>
+        <td><span class="mono">planId, personaId, status (OPEN|IN_PROGRESS|DONE|BREACHED), caseId?, notifiedAt, breachedAt?</span></td>
+        <td><span class="badge badge-amber">Schema sí / runtime R3+</span></td>
+      </tr>
+      <tr>
+        <td><strong>AuditEvent</strong></td>
+        <td>Append-only: quién hizo qué sobre qué entidad.</td>
+        <td><span class="mono">actor, action, entityType, entityId, before/after, at</span></td>
+        <td><span class="badge badge-green">Sí</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4 class="flow">Acciones del sistema por entidad</h4>
+  <p>Contrato de API/producto. Lo que no esté acá no se improvisa en el front.</p>
+
+  <table>
+    <thead><tr><th>Entidad</th><th>Acciones</th><th>Quién / notas</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Control</strong></td>
+        <td><span class="mono">create</span>, <span class="mono">update</span> (no breaking del outputSchema sin versión), <span class="mono">retire</span>, <span class="mono">testBinding</span> (dry-run contra sandbox)</td>
+        <td>Admin compliance / IT. Retire bloquea nuevas Rules.</td>
+      </tr>
+      <tr>
+        <td><strong>Rule</strong></td>
+        <td><span class="mono">createDraft</span>, <span class="mono">publish</span> (nueva versión + <span class="mono">effectiveFrom</span>), <span class="mono">retire</span>, <span class="mono">diffVersions</span>, <span class="mono">estimateImpact</span> (cuántos Personas/casos abiertos caen bajo la nueva versión)</td>
+        <td><span class="mono">publish</span> puede encolar <span class="mono">RecheckJob</span> si <span class="mono">recheckPolicy=REQUIRED</span>.</td>
+      </tr>
+      <tr>
+        <td><strong>CaseTemplate</strong></td>
+        <td><span class="mono">create</span>, <span class="mono">extend</span> (hijo), <span class="mono">attachRule</span> / <span class="mono">detachRule</span> / <span class="mono">setParams</span>, <span class="mono">reorderStages</span>, <span class="mono">publish</span>, <span class="mono">cloneAsDelta</span></td>
+        <td>Publish pinnea Rule versions. Casos abiertos siguen en la versión con la que nacieron salvo re-bind explícito.</td>
+      </tr>
+      <tr>
+        <td><strong>Persona</strong></td>
+        <td><span class="mono">upsert</span>, <span class="mono">linkRelation</span>, <span class="mono">setStatus</span> (ACTIVE|BLOCKED|PENDING_REMEDIATION), <span class="mono">getComplianceSnapshot</span></td>
+        <td>Bloqueo emite evento a core/Xook (post-MVP cableado; MVP deja el hook).</td>
+      </tr>
+      <tr>
+        <td><strong>Evidence</strong></td>
+        <td><span class="mono">upload</span>, <span class="mono">ingestFromAgent</span>, <span class="mono">extract</span> (vision/OCR), <span class="mono">attachToPersona</span>, <span class="mono">invalidate</span> (soft)</td>
+        <td>Inmutable: invalidate no borra; nueva evidence reemplaza en evaluaciones siguientes.</td>
+      </tr>
+      <tr>
+        <td><strong>ComplianceCase</strong></td>
+        <td><span class="mono">openFromTemplate</span>, <span class="mono">classify</span>, <span class="mono">evaluateRule</span> / <span class="mono">evaluateAll</span>, <span class="mono">requestOverride</span>, <span class="mono">approveOverride</span>, <span class="mono">advanceGate</span> (GE/PLD), <span class="mono">returnForFix</span> (crea CaseGaps), <span class="mono">approve</span>, <span class="mono">reject</span>, <span class="mono">emitPersonaOK</span></td>
+        <td>MVP: solo <span class="mono">kind=ONBOARDING</span>. Mismas acciones sirven a RECHECK/REMEDIATION después.</td>
+      </tr>
+      <tr>
+        <td><strong>IntakeLink</strong></td>
+        <td><span class="mono">issue</span> (desde gaps), <span class="mono">open</span> (valida TTL/uses; <em>no</em> devuelve expediente), <span class="mono">submitGap</span> (write Evidence), <span class="mono">revoke</span>, <span class="mono">rotate</span></td>
+        <td><span class="mono">open</span> responde solo labels + input schema de los gaps. Cero PII preexistente en el payload.</td>
+      </tr>
+      <tr>
+        <td><strong>RuleEvaluation</strong></td>
+        <td><span class="mono">run</span>, <span class="mono">override</span>, <span class="mono">rerun</span></td>
+        <td>Toda decisión deja <span class="mono">AuditEvent</span>.</td>
+      </tr>
+      <tr>
+        <td><strong>RecheckJob</strong></td>
+        <td><span class="mono">create</span>, <span class="mono">previewCohort</span>, <span class="mono">start</span>, <span class="mono">pause</span>, <span class="mono">cancel</span>, <span class="mono">report</span></td>
+        <td>Por cada Persona del cohort: abre <span class="mono">ComplianceCase(kind=RECHECK)</span> o marca snapshot según strategy.</td>
+      </tr>
+      <tr>
+        <td><strong>AdequacyPlan</strong></td>
+        <td><span class="mono">create</span>, <span class="mono">previewCohort</span>, <span class="mono">activate</span>, <span class="mono">enroll</span> / <span class="mono">enrollBatch</span>, <span class="mono">notify</span>, <span class="mono">tickDeadline</span>, <span class="mono">breach</span>, <span class="mono">close</span></td>
+        <td><span class="mono">tickDeadline</span> diario: si enrollment no DONE y <span class="mono">now &gt; deadline</span> → <span class="mono">breach</span> → <span class="mono">onBreach</span> (bloqueo).</td>
+      </tr>
+      <tr>
+        <td><strong>AdequacyEnrollment</strong></td>
+        <td><span class="mono">openRemediationCase</span>, <span class="mono">markDone</span>, <span class="mono">extendDeadline</span> (con rol), <span class="mono">forceBreach</span></td>
+        <td>Remediación = <span class="mono">ComplianceCase(kind=REMEDIATION)</span> con template del plan.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="grid-2">
+    <div class="card">
+      <strong>Alcance runtime MVP</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>Persona + relations + Evidence</li>
+        <li>Control / Rule / Template / Link</li>
+        <li>ComplianceCase ONBOARDING + CaseGap</li>
+        <li>IntakeLink write-only (magic link)</li>
+        <li>RuleEvaluation + AuditEvent</li>
+        <li>Hooks vacíos: RecheckJob, AdequacyPlan (tablas + APIs stub)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <strong>Post-MVP — mismo motor</strong>
+      <ul class="bl" style="margin-top:10px;">
+        <li>RecheckJob al publicar Rule vN</li>
+        <li>AdequacyPlan por filtro de attributes/riesgo/tipo</li>
+        <li>Breach → Persona.BLOCKED + evento a core</li>
+        <li>Monitoring continuo de listas (diff diario)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h4 class="flow">Re-chequeos y planes de adecuación</h4>
+  <pre class="mermaid">
+sequenceDiagram
+  participant PLD as PLD Admin
+  participant Rules as Rule Registry
+  participant Job as RecheckJob
+  participant Case as ComplianceCase
+  participant Core as Core / Xook
+
+  PLD->>Rules: publish Rule vN (listas mas estrictas)
+  Rules->>Job: estimateImpact + create RecheckJob
+  Job->>Job: previewCohort (Personas ACTIVE que matchean)
+  PLD->>Job: start
+  loop cada Persona
+    Job->>Case: open kind=RECHECK template@vN
+    Case->>Case: evaluateAll
+    alt FAIL bloqueante
+      Case->>PLD: cola HITL / remediacion
+    else PASS
+      Case->>Case: close DONE
+    end
+  end
+  </pre>
+
+  <pre class="mermaid">
+sequenceDiagram
+  participant PLD as PLD
+  participant Plan as AdequacyPlan
+  participant Enr as Enrollment
+  participant Case as RemediationCase
+  participant Persona as Persona
+  participant Core as Core
+
+  PLD->>Plan: create filter=SOFOM OR risk>=HIGH deadline=D
+  PLD->>Plan: activate + enrollBatch
+  Plan->>Enr: OPEN + notify
+  Enr->>Case: openRemediationCase
+  alt DONE antes de D
+    Case->>Enr: markDone
+  else pasa D sin DONE
+    Plan->>Enr: breach
+    Enr->>Persona: status=BLOCKED
+    Persona->>Core: BloquearPersona / BlockAccount event
+  end
+  </pre>
+
+  <div class="callout">
+    <div class="callout-title">Modelo unificado de ComplianceCase</div>
+    <p>Onboarding, re-check y remediación son <strong>el mismo objeto con distinto <span class="mono">kind</span> y template</strong>. El evaluator, la cola HITL, overrides y evidencias no se reescriben. El AdequacyPlan solo orquesta cohort + deadline + consecuencia.</p>
+  </div>
+
+  <div class="callout dark">
+    <div class="callout-title">Riesgos de diseño a evitar</div>
+    <p><strong>17 perfiles copiados</strong> en lugar de herencia → drift regulatorio.</p>
+    <p><strong>Reglas con vendor hardcodeado</strong> en el átomo → imposible cambiar Niva/Complif/FaceTec sin reescribir templates.</p>
+    <p><strong>Workflow dentro del diccionario</strong> (“si falla lista ir a pantalla X”) → state machine del caso, no la regla.</p>
+    <p><strong>Controles solo en el portal</strong> → mail/HITL fuera de compliance.</p>
+    <p><strong>Re-check = UPDATE in place del alta vieja</strong> → perder traza; siempre abrir caso nuevo versionado.</p>
+    <p><strong>Plan de adecuación sin onBreach integrado al core</strong> → el deadline no produce efecto operativo.</p>
+  </div>
+
+
+  <!-- BUILD VS BUY -->
+  <h2 class="section"><span class="kicker">Build vs buy</span>Suite KYC vs Maak + rails thin</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Con IA se abarata mucho el <em>front + orquestación + HITL</em>. Eso achica el diferencial de un suite KYC full. No elimina el diferencial de los <strong>rieles regulados</strong> (listas, biometría certificada, burós/institucionales, liability y mantenimiento).</p>
+
+  <div class="callout dark">
+    <div class="callout-title">Recomendación</div>
+    <p><strong>Build Maak</strong> (Persona, diccionario, templates, casos, agente mail, HITL, re-check, adequacy plans, audit).</p>
+    <p><strong>Buy thin rails</strong>: listas/screening agregadas, face + liveness (p.ej. FaceTec u equivalente), consultas institucionales donde no haya API pública confiable (INE/RENAPO/SAT vía proveedor).</p>
+    <p><strong>No adquirir</strong> como producto el portal de onboarding, CRM, motor de reglas opaco ni UI de casos del vendor: ese alcance corresponde a Maak y debe permanecer bajo gobierno STP.</p>
+    <p>Complif/Niva resultan preferibles en la evaluación solo si exponen <strong>APIs headless</strong> que entren como <span class="mono">Control.binding</span> sin secuestrar el journey. Si obligan pantalla/iframe end-to-end, el costo de integración &gt; el valor.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Capa</th><th>¿Build STP?</th><th>¿Buy?</th><th>Por qué</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>UI onboarding / BO / agente mail / HITL</strong></td>
+        <td><span class="badge badge-green">Build</span></td>
+        <td><span class="badge badge-red">No suite</span></td>
+        <td>La UI y orquestación se construyen en STP (CC, mail-first, adapter SICLI). Una suite completa implica vendor lock del journey.</td>
+      </tr>
+      <tr>
+        <td><strong>Motor reglas / templates / casos / audit</strong></td>
+        <td><span class="badge badge-green">Build</span></td>
+        <td><span class="badge badge-red">No</span></td>
+        <td>Es el ClienteOS. Re-check y adequacy plans son product decision STP, no feature de un vendor.</td>
+      </tr>
+      <tr>
+        <td><strong>Chequeo documental (OCR / clasificación / extracción)</strong></td>
+        <td><span class="badge badge-green">Build</span> (vision LLM + HITL)</td>
+        <td><span class="badge badge-amber">Opcional</span></td>
+        <td>Hoy cualquier modelo de visión decente + schema de extracción alcanza para prefill. La garantía no es el modelo: es <strong>HITL + Evidence inmutable + RuleEvaluation</strong>. Vendor aporta poco si ya tenés cola interna.</td>
+      </tr>
+      <tr>
+        <td><strong>Listas / PEP / adverse media</strong></td>
+        <td><span class="badge badge-slate">Agregar internas</span></td>
+        <td><span class="badge badge-green">Buy</span></td>
+        <td>El diferencial real: cobertura, frescura, licencias, false-positive tuning, traza defendible ante auditoría. Replicar OFAC+69-B+PEP+media in-house es costo oculto eterno.</td>
+      </tr>
+      <tr>
+        <td><strong>Face + liveness</strong></td>
+        <td><span class="badge badge-red">No reinventar</span></td>
+        <td><span class="badge badge-green">Buy</span></td>
+        <td>Ataques presentation/injection; certificación; SDKs móviles. FaceTec (u otro) como Control binding. No es un fin de semana con un modelo open-source.</td>
+      </tr>
+      <tr>
+        <td><strong>INE / RENAPO / SAT / CSF</strong></td>
+        <td><span class="badge badge-amber">Wrap</span></td>
+        <td><span class="badge badge-green">Buy acceso</span></td>
+        <td>El valor no es el JSON: es el <em>contrato de acceso</em>, uptime, y quién responde si el dato viene mal. Maak llama; no opera el rail.</td>
+      </tr>
+      <tr>
+        <td><strong>Continuous monitoring / screening post-alta</strong></td>
+        <td><span class="badge badge-green">Orquesta</span> (RecheckJob)</td>
+        <td><span class="badge badge-green">Buy feed</span></td>
+        <td>Vendor manda diffs de listas; Maak abre RecheckJobs / AdequacyPlans. No al revés.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="statstrip">
+    <div class="stat"><div class="stat-num">Build</div><div class="stat-label">Maak core + vision docs</div></div>
+    <div class="stat"><div class="stat-num">Buy</div><div class="stat-label">Listas + face/liveness + burós</div></div>
+    <div class="stat"><div class="stat-num">Skip</div><div class="stat-label">Suite UI / motor opaco</div></div>
+  </div>
+
+  <div class="callout green">
+    <div class="callout-title">Diferencial residual de suites Complif / Niva</div>
+    <p>No es “saber hacer un formulario de alta”. Es: (1) agregación y licencia de listas ya operando en MX, (2) conectores institucionales ya peinados, (3) playbooks PLD/KYB empaquetados, (4) a veces monitoring continuo y soporte en auditorías. <strong>Eso se compra por API</strong>, no por suite.</p>
+    <p>Niva ya demostró headless cara-cliente (30-jul). Si el paquete completo (BO + BYOC + precio) no gana a la suma de rails (list provider + FaceTec + SAT/RENAPO), <strong>no adjudicar suite</strong>: contratar rieles y codear Maak; Niva solo como binding KYB si cierra gaps.</p>
+  </div>
+
+  <div class="callout red">
+    <div class="callout-title">Riesgos de un enfoque 100% build</div>
+    <p><strong>Vision ≠ compliance.</strong> Un LLM que “lee” un acta no certifica poderes ni detecta deepfake documental solo. Las reglas BLOCK mantienen HITL obligatorio.</p>
+    <p><strong>Listas:</strong> falsos negativos son riesgo regulatorio; falsos positivos son costo ops. Sin proveedor, STP hereda ambos.</p>
+    <p><strong>Biometría casera:</strong> deuda de seguridad y de evidencia ante autoridad.</p>
+    <p><strong>IA acelera el 40% visible</strong> (UI, glue, extracción). El 60% caro es ops, licencias, incidentes y cambios regulatorios — ahí el vendor thin ayuda; el suite gordo no.</p>
+  </div>
+
+  <h4 class="flow">Oferta headless / thin layer (julio 2026)</h4>
+  <table>
+    <thead><tr><th>Proveedor</th><th>Qué venden</th><th>¿Headless thin?</th><th>Lectura STP</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Complif</strong></td>
+        <td>Suite onboarding + BO + screening + matrices + agente Kayce. White-label portal. FaceTec debajo.</td>
+        <td><span class="badge badge-amber">Parcial</span></td>
+        <td>Demo 24-jul: <em>sí hay API + webhooks</em>, pero config/flujos viven en su portal; docs API pedidas y pendientes. No es “solo rails”: el journey/UI es el producto. OTP teléfono no nativo. Poco peso MX demostrado en esa sesión.</td>
+      </tr>
+      <tr>
+        <td><strong>Niva</strong></td>
+        <td>KYB headless: submissions + docs + checks + RPC (RFC/nombre) + name matcher. Widgets opcionales (upload). Face/liveness vía partner.</td>
+        <td><span class="badge badge-green">Sí — cara cliente</span></td>
+        <td>Call 30-jul + <span class="mono">docs.niva.co</span>: flujo externo 100% API (ref. Zeppelin). Auth <span class="mono">apiKey</span>; prod <span class="mono">api.niva.co/v1</span> / demo <span class="mono">api.niva-demo.com/v1</span>. Public Documents API con token de submission (24h) — encaja con IntakeLink. Fricción: empujan su BO (5–6 clientes volvieron); BYOC/VPC Querétaro <em>no</em> hoy. Mapear gaps vs diccionario; pricing después.</td>
+      </tr>
+      <tr>
+        <td><strong>OrigoID</strong></td>
+        <td>Infra ID MX: RENAPO, INE, SAT/69-B, OFAC/PEP, biometrics, OCR domicilio. Docs públicas.</td>
+        <td><span class="badge badge-green">Sí — API-first</span></td>
+        <td>Candidato fuerte a <span class="mono">Control.binding</span> institucional + listas. “Tunnel not vault”. Cotizar vs AlphaTech/Singula.</td>
+      </tr>
+      <tr>
+        <td><strong>Singula</strong></td>
+        <td>API MX: CURP/RFC/INE, blacklists, biometric KYC, OCR, MCP server. Sandbox free.</td>
+        <td><span class="badge badge-green">Sí — API-first</span></td>
+        <td>Mismo bucket thin rails. Evaluar cobertura PEP/adverse media y SLA.</td>
+      </tr>
+      <tr>
+        <td><strong>AlphaTech</strong></td>
+        <td>Suite APIs datos oficiales MX (CURP, RFC, INE, blacklists, …) OpenAPI.</td>
+        <td><span class="badge badge-green">Sí — API-first</span></td>
+        <td>Rail de datos; no reemplaza motor de casos Maak.</td>
+      </tr>
+      <tr>
+        <td><strong>FaceTec</strong> (directo o vía partner)</td>
+        <td>3D liveness + face match SDK; data en tu server.</td>
+        <td><span class="badge badge-green">Sí — SDK/API</span></td>
+        <td>Comprar directo (o partner) como binding; no hace falta suite Complif solo por FaceTec.</td>
+      </tr>
+      <tr>
+        <td><strong>LexisNexis / World-Check / Quién es Quién</strong></td>
+        <td>PEP / adverse media / screening feeds (Complif ya los presupuesta como terceros).</td>
+        <td><span class="badge badge-green">Sí — feed/API</span></td>
+        <td>Se pueden contratar sin pasar por Complif; Maak orquesta RecheckJob.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <div class="callout-title">Update Niva — 30-jul-2026 (call + docs privadas)</div>
+    <p><strong>Headless cara-cliente: confirmado.</strong> Crear submission → subir docs → <span class="mono">POST /submissions/{id}/run</span> → webhooks → estados <span class="mono">needs_review | approved | rejected</span>. Widgets embebibles opcionales; la doc recomienda API directa si el UI es propio.</p>
+    <p><strong>Encaje Maak:</strong> Niva como binding <span class="mono">VENDOR</span> de KYB documental / RPC / matching — no dueño del caso. El Public Documents API (token público + token de submission 24h) permite que el cliente suba por IntakeLink sin pasar por el portal Niva.</p>
+    <p><strong>Fricciones abiertas:</strong> (1) BO propio vía API es posible pero Niva empuja su plataforma (evidencia de clientes que volvieron) — choca con “cambios sin ticket/SLA”. (2) Deploy en nube STP / Querétaro: no soportado hoy; Akhil lo lleva internamente — mismo criterio BYOC que se pide al core. (3) MCP no es criterio de evaluación de vendor (OpenAPI basta).</p>
+  </div>
+
+  <div class="callout">
+    <div class="callout-title">Conclusión de evaluación de proveedores</div>
+    <p><strong>Complif</strong> sigue más cerca de journey+BO (API parcial; docs pendientes). <strong>Niva</strong> ya demostró API-first para el flujo externo y documentación privada usable; el riesgo residual es ownership del back office y BYOC, no la existencia de endpoints.</p>
+    <p><strong>El thin layer MX sigue disponible como suma:</strong> OrigoID / Singula / AlphaTech (institucionales + listas) + FaceTec + feed PEP + vision in-house. Cotizar <em>Niva como rail KYB</em> vs esa suma — no como suite dueña de Maak.</p>
+    <p>Arrancar con UI Niva es aceptable como puente de know-how <em>solo si</em> el contrato garantiza camino a pantallas STP 100% vía API (sin dependencia de SLA para cambios de flujo).</p>
+  </div>
+
+  <div class="notebox"><strong>Criterio de adjudicación:</strong> (a) diccionario P1 con bindings tipados, (b) cotizar en paralelo <em>suma de rails</em> vs Niva-as-binding (+ Complif si entrega docs API), (c) IntakeLink + HITL 100% en Maak, (d) postura escrita de Niva sobre BO propio y BYOC Querétaro antes de pricing.</div>
+
+
+
+  <!-- SGC LEGACY ALEX -->
+  <h2 class="section"><span class="kicker">Antecedente</span>SGC legacy (intento Camunda / Alex)</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Alex Martínez compartió el pack del <strong>Sistema de Gestión de Clientes</strong> in-house (Camunda 8 + Angular + microservicios Java). No llegó a producción. Es el antecedente directo de Maak: conviene cosechar dominio, DMN de documentos y patrones de binding — no el orquestador BPM ni el sprawl de servicios.</p>
+
+  <div class="callout">
+    <div class="callout-title">Qué era el SGC</div>
+    <p>Onboarding digital PF/PM orquestado por <strong>Camunda 8 (Zeebe)</strong>: capturar solicitante/prospecto → completar datos → carga/validación de docs → cálculo de riesgo → firma de contrato (MiFiel / NOM-151). Forms públicos con <strong>TTL + OTP</strong>; BO interno con Keycloak SSO; docs en S3; Trebol para identidad; Meltsan para listas.</p>
+    <p>Stack documentado: Java 17 / Spring Boot hexagonal / Angular 17 / EKS / PostgreSQL / OpenAPI 3. NFR: disponibilidad piso 98,8&nbsp;% (Meltsan), ~500 concurrentes.</p>
+  </div>
+
+  <div class="callout red">
+    <div class="callout-title">Por qué no llegó a producción (lectura)</div>
+    <p>Falló más por <strong>política de alcance y forma de entregar</strong> que por “mala tecnología”. El onboarding in-house 2025 (Ale / Camunda / OCR) llegó a presentar; al liberar, las áreas dijeron que no servía porque “no era el Maak completo” y no veían cómo desconectar SICLI — aunque desconectar SICLI <em>no</em> era la intención de esa fase.<span class="fn">Maak Análisis Interno 30-jul-2026 (Eli: cuarto intento; rechazo al liberar).</span></p>
+    <ul class="bl" style="margin-top:10px;">
+      <li><strong>Slice útil medido como reemplazo total:</strong> pidieron el sistema entero; mataron un corte de onboarding que podía coexistir con SICLI vía adapter.</li>
+      <li><strong>Arquitectura pesada para el primer corte:</strong> Camunda/Zeebe + Angular + microservicios en EKS sumaron superficie antes de valor operativo (docs + reglas + HITL + inyección).</li>
+      <li><strong>Cuarto intento:</strong> umbral de rechazo bajo; sin narrativa explícita de coexistencia, “aún no apagamos SICLI” se vuelve veto.</li>
+      <li><strong>Dominio ≠ producto operable:</strong> modelaron bien Persona/docs/riesgo, pero el dueño del journey quedó en BPM/forms — poco control percibido para cambios de regla del día a día.</li>
+    </ul>
+    <p style="margin-top:10px;"><strong>Lección para Maak:</strong> vender coexistencia (adapter) y MVP estrecho, no “Maak completo o nada”.</p>
+  </div>
+
+  <h3 class="sub">Qué reutilizar en Maak</h3>
+  <table>
+    <thead><tr><th>Activo SGC</th><th>Encaje Maak</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>DMN «Definir documentos requeridos»</strong><br><span class="mono">categoria × actividad × participanteIndirecto → docs PM</span></td>
+        <td>Embrión del diccionario Controles→Reglas (templates documentales). Migrar a rules engine Maak — <em>no</em> a Camunda DMN.</td>
+      </tr>
+      <tr>
+        <td><strong>Modelo de datos</strong> Solicitud → Prospecto → Personas (PF/PM) + roles (accionistas, RL, UBO/PR, contactos), PEPs, riesgo, perfil transaccional, domicilios SEPOMEX</td>
+        <td>Input directo a PRD-01 (Persona, ComplianceCase, Evidence). Más rico que SICLI JSF; DDL en <span class="mono">stpmex/stp-di-sgc-artifacts</span>.</td>
+      </tr>
+      <tr>
+        <td><strong>Magic links TTL + OTP</strong> en forms públicos</td>
+        <td>Mismo patrón que IntakeLink write-only (<span class="mono">/i/{token}</span>).</td>
+      </tr>
+      <tr>
+        <td><strong>Bindings</strong> Trebol / Meltsan / MiFiel (+ bitácora de consumo)</td>
+        <td>Controles tipados con <span class="mono">Control.binding</span> intercambiables (hoy Meltsan/MiFiel; Trebol o Niva/FaceTec según rail).</td>
+      </tr>
+      <tr>
+        <td><strong>Riesgo</strong> Bajo / Medio / Alto / <strong>Bloqueante</strong> en solicitud</td>
+        <td>Alinea con gate de riesgo as-is SICLI y con casos HITL en Maak.</td>
+      </tr>
+      <tr>
+        <td><strong>Storyboard Lucid + demos sprint</strong></td>
+        <td>Blueprint de experiencia (pasos, pantallas) — ownership del journey queda en Maak, no en Camunda forms.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">Qué no arrastrar</h3>
+  <ul class="bl">
+    <li><strong>Camunda 8 como centro:</strong> BPMN/DMN + workers + Zeebe sumaron superficie sin llegar a prod. MVP Maak = templates + state machine light + HITL.</li>
+    <li><strong>Angular + microservicios sprawl por paso:</strong> Maak Next.js/Fargate con dominio único Persona/casos; rails thin detrás de bindings.</li>
+    <li><strong>Producto “cuenta” dentro del SGC:</strong> en feb-2026 el propio esquema dejó de lado <span class="mono">cat_productos / contratos / clientes</span> — confirma que cuenta ≠ onboarding (core/Xook).</li>
+  </ul>
+
+  <div class="callout green">
+    <div class="callout-title">Implicación para la adjudicación de vendors</div>
+    <p>El SGC ya probó el camino “suite de orquestación + muchos servicios propios”. Maak no lo repite: <strong>diccionario + IntakeLink + HITL en casa</strong>; Trebol/Meltsan/MiFiel/Niva/FaceTec solo como rails. El demo sprint 2 (<span class="mono">sgc-demo-sprint2.mov</span>) se analiza apenas esté en la carpeta Maak — por ahora el juicio se basa en alto nivel, DMN, esquema BD y Lucid.</p>
+  </div>
+
+  <div class="notebox">Material curado en <span class="mono">documentos/Maak - Onboarding/SGC_legacy_Alex_2026-07-30/</span>. Call con Ale (acordada) para cerrar qué del sprint 2 sigue vivo y qué se archiva. Video demo pendiente de bajada local (Slack MCP tope 10&nbsp;MB; archivo ~41&nbsp;MB).</div>
+
+
+  <h2 class="section"><span class="kicker">Roadmap</span>Epics vs releases</h2>
+  <div class="section-rule"></div>
+  <table>
+    <thead><tr><th>Epic</th><th>MVP</th><th>R2</th><th>R3+</th></tr></thead>
+    <tbody>
+      <tr><td>Diccionario + templates + data model completo (hooks recheck/adequacy)</td><td>✓ P0–P2</td><td>P3 portal</td><td>P4 deltas</td></tr>
+      <tr><td>OpenAPI docs + auth scopes</td><td>✓ contrato ONBOARDING</td><td>webhooks estables</td><td>partners</td></tr>
+      <tr><td>MCP Maak (Cursor/Claude) + Slack bot</td><td>stub/ ADR</td><td>✓ read + IntakeLink</td><td>mutaciones guardrails</td></tr>
+      <tr><td>Agente mail/Jira → HITL + IntakeLink write-only</td><td>✓</td><td>portal sesión</td><td></td></tr>
+      <tr><td>Checks: vision docs in-house + rails (listas/face/institucionales)</td><td>✓</td><td>mejoras extracción</td><td>monitoring feeds</td></tr>
+      <tr><td>RecheckJob + AdequacyPlan (runtime)</td><td>schema/stub</td><td></td><td>✓</td></tr>
+      <tr><td>CC DRS + cuenta padre tipos estándar (~15)</td><td>✓</td><td></td><td></td></tr>
+      <tr><td>Adapter inyección SICLI (capa intermedia)</td><td>✓</td><td></td><td>deprecar</td></tr>
+      <tr><td>Portal self-serve invite/carga</td><td></td><td>✓</td><td></td></tr>
+      <tr><td>Tipos con validaciones extra (SOFOMs…)</td><td></td><td></td><td>✓</td></tr>
+      <tr><td>Fideicomisos / extranjeros / gobierno / crypto</td><td></td><td></td><td>✓</td></tr>
+      <tr><td>PersonaOK → core headless / Xook</td><td>stub/evento</td><td>✓</td><td></td></tr>
+      <tr><td>Mantenimiento expediente / PI / ABC</td><td></td><td></td><td>✓</td></tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">Backlog PRDs / specs (reordenado al MVP)</h3>
+  <ol class="num">
+    <li><strong>PRD-01 / ADR</strong> Data model + acciones: Persona, Control, Rule, Template (<span class="mono">entityScope</span>/<span class="mono">serviceCode</span>), ComplianceCase, Evidence, RuleEvaluation; stubs RecheckJob/AdequacyPlan</li>
+    <li><strong>PRD-01b</strong> Diccionario MVP (~15–25 controles) + bindings tipados (API|VISION|LIST|MANUAL) — owner PLD/Ops</li>
+    <li><strong>PRD-01c</strong> Templates T-PM-STD + T-CC-DRS + evaluator (solo kind=ONBOARDING, <span class="mono">entityScope=STP_IFPE</span> en MVP); diseño admite deltas por entidad/servicio del grupo</li>
+    <li><strong>PRD-02</strong> Agente de ingesta mail/Jira → expediente Maak + cola HITL</li>
+    <li><strong>PRD-02b</strong> IntakeLink write-only (/i/{token}): gaps tipados, sin echo de PII, TTL + rotate</li>
+    <li><strong>PRD-03</strong> Onboarding CC DRS + cuenta padre — tipos estándar (~15) vía HITL</li>
+    <li><strong>Tech Spec</strong> Adapter SICLI (inyección sin modificar el monolito)</li>
+    <li><strong>Tech Spec</strong> Rails: list provider + FaceTec/liveness + gateway INE/RENAPO/SAT + SNS OTP; vision docs in-house</li>
+    <li><strong>ADR</strong> Niva-as-binding (+ Complif si API) vs suma de rails — headless cara-cliente OK en Niva; decidir BO propio + BYOC</li>
+    <li><strong>PRD-05</strong> Portal self-serve (R2 / P3) reutilizando los mismos templates</li>
+    <li><strong>PRD-06</strong> Deltas de tipo (SOFOMs…) + edge RFP 1.8 (P4)</li>
+    <li><strong>PRD-10</strong> RecheckJob al publicar Rule + AdequacyPlan (cohort, deadline, onBreach→bloqueo)</li>
+    <li><strong>PRD-07</strong> PersonaOK → core headless / Xook (+ BloquearPersona event)</li>
+    <li><strong>PRD-08</strong> Migración / apagado gradual SICLI</li>
+    <li><strong>PRD-09</strong> Mantenimiento expediente, PI, ABC/bloqueos (post onboarding puro)</li>
+    <li><strong>Tech Spec</strong> Deploy Maak Next.js en ECS Fargate</li>
+    <li><strong>Tech Spec</strong> OpenAPI Maak (CI, portal docs, scopes OAuth2/mTLS, webhooks firmados)</li>
+    <li><strong>PRD-11</strong> MCP Server Maak — tools alineadas a acciones de dominio; clientes Cursor/Claude</li>
+    <li><strong>PRD-12</strong> Conector Slack (alertas HITL + consultas; PII mínima)</li>
+  </ol>
+
+  <h2 class="section"><span class="kicker">Pendientes</span>Decisiones e insumos abiertos</h2>
+  <div class="section-rule"></div>
+  <ul class="bl">
+    <li><strong>Alex / SGC legacy:</strong> call próxima semana — mapear DMN docs → diccionario Maak; confirmar bindings Trebol/Meltsan/MiFiel vivos; archivar Camunda/BPMN para MVP. Bajar <span class="mono">sgc-demo-sprint2.mov</span> a carpeta Maak y anexar hallazgos de UI.</li>
+    <li><strong>Juan Pablo:</strong> lista de los 17 sectores + docs requeridos + % de volumen (insumo #1 del Pareto).</li>
+    <li><strong>Diana:</strong> columna MVP de la matriz solo captura+chequeos (sin gestión); review con Paula.</li>
+    <li><strong>Niva (post 30-jul):</strong> mapear diccionario Maak ↔ endpoints (submissions/docs/checks/RPC/matcher); listar gaps; respuesta Akhil/Oscar sobre BYOC Querétaro; luego pricing.</li>
+    <li><strong>Complif:</strong> documentación API prometida (24-jul) — ¿alcance real vs solo webhooks de su expediente?</li>
+    <li>PoC rails: OrigoID o Singula (CURP/RFC/listas) + FaceTec directo; comparar costo vs Niva-as-binding (no suite).</li>
+    <li>Viabilidad capa intermedia SICLI (Nacho + Paulo + Mike) sin tocar el monolito a ciegas.</li>
+    <li>Medir (baseline + targets MVP): % altas por mail vs portal; <strong>% CC nuevos con KYC → 100%</strong>; TAT p50/p90 por tipo; altas/expansiones por FTE ops — baseline antes de vendor price. Post-MVP: tiempo Persona verificada → oferta segundo producto del grupo.</li>
+    <li>Schema P0: confirmar dimensión <span class="mono">entityScope</span> / <span class="mono">serviceCode</span> en CaseTemplate (o TemplateRuleLink) para deltas Sttega/SOFIPO sin segundo ClienteOS — runtime solo STP en MVP.</li>
+    <li>Adjudicación: Niva-as-binding (+ Complif si API) vs <em>suma de rails</em> — cotizar en paralelo; decidir BO propio + BYOC Querétaro antes de pricing.</li>
+    <li>Owners y filtros piloto de AdequacyPlan (qué cohort primero; qué es onBreach real vs alerta).</li>
+    <li>Validar Lucid Globant vs este orden de release (no dejar que el journey diluya el MVP).</li>
+    <li><strong>PLD + Ops:</strong> owners del diccionario (quién aprueba alta de Control/Rule) y primer corte de ~15–25 controles para P1.</li>
+  </ul>
+
+
+  <h2 class="section"><span class="kicker">Anexo</span>Prototipos Maak</h2>
+  <div class="section-rule"></div>
+  <p class="lead">Viñetas de UI alineadas al design system SPEI 3.0. Cada bloque: nota breve + interfaz limpia. Galería: <a href="13c_Maak_Prototipos.html"><span class="mono">13c_Maak_Prototipos.html</span></a> · HITL: <a href="13b_Maak_HITL_Caso_Prototipo.html"><span class="mono">13b_Maak_HITL_Caso_Prototipo.html</span></a>.</p>
+
+  <div class="proto-grid">
+
+    <div>
+      <p class="proto-note">IntakeLink write-only: el cliente solo ve los gaps tipados — sin expediente completo ni PII en la URL (<span class="mono">/i/{token}</span>).</p>
+      <article class="proto">
+        <div class="proto-head">
+          <div>
+            <div class="who">Cliente</div>
+            <div class="what">IntakeLink</div>
+          </div>
+          <span class="pf-pill warn">2 pendientes · TTL 47h</span>
+        </div>
+        <div class="proto-body">
+          <div class="proto-frame">
+            <div class="pf-gap"><strong>Poder notarial vigente</strong><p>Subí escritura o ratificación ≥ 12 meses.</p></div>
+            <div class="pf-gap"><strong>Acta — fólios 4 al 6</strong><p>Falta objeto social.</p></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div>
+      <p class="proto-note">Vista HITL del caso: paso actual del template + tiempo por etapa (quién tiene la pelota).</p>
+      <article class="proto">
+        <div class="proto-head">
+          <div>
+            <div class="who">HITL</div>
+            <div class="what">Caso</div>
+          </div>
+          <span class="pf-pill bad">FALLA · espera cliente</span>
+        </div>
+        <div class="proto-body">
+          <div class="proto-frame">
+            <div style="font-size:12.5px;margin-bottom:8px;"><strong>Comercializadora Delta</strong> · CSK-08421</div>
+            <div class="pf-flow">
+              <div class="pf-step pf-ok"><div>01</div><b>Ingesta</b><span>OK</span></div>
+              <div class="pf-step pf-ok"><div>02</div><b>Datos</b><span>OK</span></div>
+              <div class="pf-step pf-bad pf-now"><div>03</div><b>Docs</b><span>Bloqueado</span></div>
+              <div class="pf-step pf-mute"><div>04</div><b>Riesgo</b><span>—</span></div>
+              <div class="pf-step pf-mute"><div>05</div><b>Firma</b><span>—</span></div>
+              <div class="pf-step pf-mute"><div>06</div><b>PersonaOK</b><span>—</span></div>
+            </div>
+            <div class="pf-g"><div>Revisión</div><div class="pf-tr"><div class="pf-bar" style="left:18%;width:12%;background:#332DF7"></div></div><div>14h</div></div>
+            <div class="pf-g"><div>Espera docs</div><div class="pf-tr"><div class="pf-bar" style="left:30%;width:48%;background:#D97706"></div></div><div style="color:#DC2626;font-weight:700">2.1d</div></div>
+            <div class="pf-g"><div>Riesgo/firma</div><div class="pf-tr"><div class="pf-bar" style="left:78%;width:22%;background:#94A3B8;opacity:.55"></div></div><div>—</div></div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="pf-two">
+      <div>
+        <p class="proto-note">Ingesta: el agente convierte un mail con adjuntos en ComplianceCase tipado.</p>
+        <article class="proto">
+          <div class="proto-head">
+            <div>
+              <div class="who">Agente</div>
+              <div class="what">Ingesta</div>
+            </div>
+          </div>
+          <div class="proto-body">
+            <div class="proto-frame">
+              <div class="pf-mail"><div style="color:var(--muted);font-size:11px">De: comercial@delta.mx · hace 12s</div><strong>Alta PM — 4 adjuntos</strong></div>
+              <div style="text-align:center;color:var(--muted);font-size:11px;margin:4px 0">↓</div>
+              <div class="pf-case"><strong>CSK-08422</strong> · T-PM-STD · <span class="pf-pill ok">CSF auto-OK</span><div style="margin-top:4px;color:var(--muted)">Cola HITL · gap: poderes</div></div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div>
+        <p class="proto-note">Al publicar una regla, el motor muestra el impacto (RecheckJob) antes de confirmar.</p>
+        <article class="proto">
+          <div class="proto-head">
+            <div>
+              <div class="who">PLD / Ops</div>
+              <div class="what">Reglas</div>
+            </div>
+          </div>
+          <div class="proto-body">
+            <div class="proto-frame">
+              <div style="font-size:12.5px"><strong>R-PODERES-VIGENTE</strong><div style="color:var(--muted)">Vigencia 12 → <b style="color:var(--purple)">18 meses</b></div></div>
+              <div class="pf-impact">RecheckJob · <b>847 Personas</b><br>612 PASS · 198 AdequacyPlan · 37 bloqueo potencial</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div>
+      <p class="proto-note">Cola HITL ordenada por estado y dueño de la pelota (cliente / analista / motor).</p>
+      <article class="proto">
+        <div class="proto-head">
+          <div>
+            <div class="who">HITL</div>
+            <div class="what">Cola</div>
+          </div>
+        </div>
+        <div class="proto-body">
+          <div class="proto-frame">
+            <table class="pf-q">
+              <thead><tr><th>Caso</th><th>Estado</th><th>Pelota</th><th>TAT</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Delta SA</strong><br><span class="mono">08421</span></td><td><span class="pf-pill bad">FALLA</span></td><td>Cliente</td><td style="color:#DC2626;font-weight:700">2.1d</td></tr>
+                <tr><td><strong>Norte Logística</strong><br><span class="mono">08418</span></td><td><span class="pf-pill warn">HITL</span></td><td>Ana M.</td><td style="font-weight:700">4h</td></tr>
+                <tr><td><strong>CC Acme-03</strong><br><span class="mono">08415</span></td><td><span class="pf-pill ok">AUTO</span></td><td>Motor</td><td>12m</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div>
+      <p class="proto-note">Cierre del onboarding: Maak certifica Persona verificada y emite el evento hacia core / adapter SICLI.</p>
+      <article class="proto">
+        <div class="proto-head">
+          <div>
+            <div class="who">Sistema</div>
+            <div class="what">PersonaOK</div>
+          </div>
+        </div>
+        <div class="proto-body">
+          <div class="proto-frame">
+            <div class="pf-okcard">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Comercializadora Delta</div>
+              <div class="big">Persona VERIFICADA</div>
+              <div class="pf-mono">event PersonaOK → core.headless</div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+  </div>
+
+  <h2 class="section"><span class="kicker">Anexo</span>Fuentes</h2>
+  <div class="section-rule"></div>
+  <ul class="bl">
+    <li><span class="mono">stpmex/coreclientesjsf</span> · Confluence DDDDS — <a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/pages/812580878/Estados+de+Sicli">Estados de Sicli</a> + <a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/whiteboard/813039629">whiteboard Estados Sicli</a> (verificado 30-jul-2026), Readme, ABC</li>
+    <li>RFP SGC feb 2026 · Matriz NIVA–Complif V3</li>
+    <li>Meeting logs: Maak 7-jul, Modo Cuentas 17-jul, Complif 24-jul, Xook roadmap 8-jul, Maak Versión v3 29-jul, <strong>Niva STP Exploring 30-jul</strong>, Maak Análisis Interno 30-jul</li>
+    <li>Niva private API docs — <span class="mono">docs.niva.co</span> (Getting started, Verifying a business, Widgets, Submissions/Documents/RPC)</li>
+    <li>SGC legacy (Alex, 30-jul): DM Slack <span class="mono">D0BMULQC2Q0</span> · <a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/pages/187531266">Alto nivel</a> · <a href="https://stpti.atlassian.net/wiki/spaces/DDDDS/pages/163840006">Esquema BD</a> · <a href="https://lucid.app/lucidchart/aeaf7d22-0346-40cc-af43-c7ecd1b2dc78/">Lucid storyboard</a> · carpeta <span class="mono">SGC_legacy_Alex_2026-07-30/</span> (video demo pendiente)</li>
+    <li>Prototipos Maak: <span class="mono">13b_Maak_HITL_Caso_Prototipo.html</span> · <span class="mono">13c_Maak_Prototipos.html</span> (DS SPEI 3.0 / Gael)</li>
+    <li>Globant Lucid “Experiencia Maak” / User Journey — Elianeth Torres, feb 2026 (<span class="mono">documentos/Maak - Onboarding/Experiencia Maak.pdf</span>)</li>
+  </ul>
+
+  <div class="footer-note">
+    v3.10 — unlock comercial TAT/KYC · Persona capa compartida grupo (reglas por entidad/servicio) · Niva API-first · Confidencial STP.
+  </div>
+  </div>
+</div>
+
+</body>
+</html>

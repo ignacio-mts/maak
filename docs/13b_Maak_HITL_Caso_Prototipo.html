@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maak · Caso CSK-2026-08421</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Open+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0F172A;
+    --ink-2: #334155;
+    --muted: #64748B;
+    --line: #E2E8F0;
+    --bg: #F1F5F9;
+    --surface: #FFFFFF;
+    --sidebar: #F8FAFC;
+    --primary: #2563EB;
+    --primary-soft: #DBEAFE;
+    --ok: #059669;
+    --ok-bg: #ECFDF5;
+    --warn: #D97706;
+    --warn-bg: #FFFBEB;
+    --fail: #DC2626;
+    --fail-bg: #FEF2F2;
+    --idle: #94A3B8;
+    --radius: 12px;
+    --font-ui: "Open Sans", system-ui, sans-serif;
+    --font-data: Inter, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--font-data); font-size: 14px; line-height: 1.45;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: var(--primary); text-decoration: none; }
+
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+  }
+
+  /* Sidebar — SPEI DS pattern */
+  .sidebar {
+    background: var(--sidebar);
+    border-right: 1px solid var(--line);
+    padding: 20px 14px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .logo {
+    font-family: var(--font-ui); font-weight: 800; font-size: 20px;
+    color: var(--ink); padding: 4px 10px 22px; letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--muted); font-weight: 600; font-size: 12px; display: block; margin-top: 2px; letter-spacing: 0; }
+  .nav-item {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 10px 12px; border-radius: 8px;
+    color: var(--ink-2); font-size: 13.5px; font-weight: 500; border: none; background: transparent; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: #EEF2FF; }
+  .nav-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 700; }
+  .nav-item .badge {
+    background: var(--primary); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .nav-foot { margin-top: auto; padding: 12px 10px; border-top: 1px solid var(--line); }
+  .nav-user { display: flex; align-items: center; gap: 10px; }
+  .nav-user .av {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--primary);
+    color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center;
+  }
+  .nav-user .nm { font-size: 13px; font-weight: 600; }
+  .nav-user .rl { font-size: 11px; color: var(--muted); }
+
+  .main { padding: 20px 24px 40px; max-width: 1180px; }
+
+  .crumb {
+    font-size: 12px; color: var(--muted); margin-bottom: 14px;
+  }
+  .crumb a { color: var(--muted); }
+  .crumb strong { color: var(--ink-2); font-weight: 600; }
+
+  .case-bar {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px;
+    display: flex; justify-content: space-between; gap: 16px; align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .case-bar h1 {
+    font-family: var(--font-ui); font-size: 22px; font-weight: 700;
+    margin: 0 0 6px; letter-spacing: -0.02em;
+  }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 600; font-family: var(--font-data); }
+  .status-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 999px;
+  }
+  .pill.fail { background: var(--fail-bg); color: var(--fail); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  .grid {
+    display: grid; grid-template-columns: 1fr 300px; gap: 16px;
+  }
+  @media (max-width: 960px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px;
+  }
+  .card h2 {
+    font-family: var(--font-ui); font-size: 15px; font-weight: 700;
+    margin: 0 0 14px; color: var(--ink);
+  }
+
+  /* Process stepper */
+  .flow { display: flex; overflow-x: auto; }
+  .step {
+    flex: 1; min-width: 108px; padding: 12px 10px;
+    border: 1px solid var(--line); background: #FAFBFC;
+  }
+  .step + .step { border-left: 0; }
+  .step:first-child { border-radius: 8px 0 0 8px; }
+  .step:last-child { border-radius: 0 8px 8px 0; }
+  .step .n { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  .step .l { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .step .s { font-size: 12px; font-weight: 600; }
+  .step.done { background: var(--ok-bg); border-color: #A7F3D0; }
+  .step.done .s { color: var(--ok); }
+  .step.now { background: var(--primary-soft); border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+  .step.now .s { color: var(--primary); }
+  .step.blocked { background: var(--fail-bg); border-color: #FECACA; }
+  .step.blocked .s { color: var(--fail); }
+  .step.todo .s { color: var(--muted); }
+
+  /* Stats + gantt */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat {
+    background: #F8FAFC; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
+  }
+  .stat .k { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat .v { font-family: var(--font-data); font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .stat .v.warn { color: var(--warn); }
+  .stat .v.bad { color: var(--fail); }
+
+  .g-row { display: grid; grid-template-columns: 120px 1fr 52px; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .g-label { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+  .g-track { height: 20px; background: #F1F5F9; border-radius: 4px; position: relative; overflow: hidden; }
+  .g-bar {
+    position: absolute; top: 3px; bottom: 3px; border-radius: 3px;
+    font-size: 10px; font-weight: 700; color: #fff; display: flex; align-items: center; padding: 0 6px;
+  }
+  .g-bar.auto { background: var(--ok); }
+  .g-bar.hitl { background: var(--primary); }
+  .g-bar.client { background: var(--warn); }
+  .g-bar.idle { background: var(--idle); opacity: .55; }
+  .g-tat { font-size: 12px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .g-axis {
+    display: grid; grid-template-columns: 120px 1fr 52px; gap: 10px;
+    font-size: 10px; color: var(--muted); margin-top: 2px;
+  }
+  .g-axis-line {
+    display: flex; justify-content: space-between;
+    border-top: 1px dashed var(--line); padding-top: 4px;
+  }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+
+  /* Timeline */
+  .tl { list-style: none; margin: 0; padding: 0; }
+  .tl li { display: grid; grid-template-columns: 64px 12px 1fr; gap: 10px; padding-bottom: 14px; }
+  .tl li:last-child { padding-bottom: 0; }
+  .tl .t { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .tl .rail { position: relative; }
+  .tl .rail::before {
+    content: ""; position: absolute; left: 4px; top: 10px; bottom: -14px; width: 2px; background: var(--line);
+  }
+  .tl li:last-child .rail::before { display: none; }
+  .tl .b {
+    width: 10px; height: 10px; border-radius: 50%; margin-top: 4px;
+    border: 2px solid var(--primary); background: #fff;
+  }
+  .tl .b.ok { border-color: var(--ok); background: var(--ok); }
+  .tl .b.fail { border-color: var(--fail); background: var(--fail); }
+  .tl .b.warn { border-color: var(--warn); background: var(--warn); }
+  .tl strong { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .tl p { margin: 0; font-size: 12px; color: var(--muted); }
+
+  .gap {
+    border: 1px solid #FECACA; background: var(--fail-bg);
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+  }
+  .gap strong { display: block; font-size: 13px; margin-bottom: 2px; }
+  .gap p { margin: 0; font-size: 12px; color: var(--muted); }
+
+  .btn {
+    display: block; width: 100%; border: none; border-radius: 8px;
+    padding: 11px 12px; font-size: 13px; font-weight: 700; margin-bottom: 8px;
+  }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .btn.ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .btn.danger { background: var(--fail-bg); color: var(--fail); border: 1px solid #FECACA; }
+
+  .kv { display: grid; gap: 8px; font-size: 13px; color: var(--muted); }
+  .kv b { color: var(--ink); font-weight: 600; }
+  .kv div { display: flex; justify-content: space-between; gap: 12px; }
+
+  .split { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+
+  #toast {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 50;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="logo">Maak<span>Backoffice</span></div>
+    <button class="nav-item" type="button">Inicio</button>
+    <button class="nav-item active" type="button">Casos <span class="badge">14</span></button>
+    <button class="nav-item" type="button">Personas</button>
+    <button class="nav-item" type="button">Reglas</button>
+    <button class="nav-item" type="button">Reportes</button>
+    <button class="nav-item" type="button">Configuración</button>
+    <div class="nav-foot">
+      <div class="nav-user">
+        <div class="av">AM</div>
+        <div>
+          <div class="nm">Ana Martínez</div>
+          <div class="rl">Dictaminación</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="crumb">Casos / Onboarding / <strong>CSK-2026-08421</strong></div>
+
+    <header class="case-bar">
+      <div>
+        <h1>Comercializadora Delta SA de CV</h1>
+        <div class="meta">
+          <span>CSK-2026-08421</span>
+          <span>RFC <b>CDE850214XXX</b></span>
+          <span>T-PM-STD</span>
+          <span>Mail / ticket</span>
+          <span>Abierto <b>4d 6h</b></span>
+        </div>
+      </div>
+      <div class="status-stack">
+        <span class="pill fail"><span class="dot"></span> FALLA · 2 gaps</span>
+        <span class="pill warn"><span class="dot"></span> IntakeLink enviado</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <section class="card">
+          <h2>Proceso</h2>
+          <div class="flow">
+            <div class="step done"><div class="n">01</div><div class="l">Ingesta</div><div class="s">Completado</div></div>
+            <div class="step done"><div class="n">02</div><div class="l">Datos</div><div class="s">Completado</div></div>
+            <div class="step blocked now"><div class="n">03</div><div class="l">Documentos</div><div class="s">Bloqueado</div></div>
+            <div class="step todo"><div class="n">04</div><div class="l">Riesgo</div><div class="s">Pendiente</div></div>
+            <div class="step todo"><div class="n">05</div><div class="l">Firma</div><div class="s">Pendiente</div></div>
+            <div class="step todo"><div class="n">06</div><div class="l">PersonaOK</div><div class="s">Pendiente</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Tiempos</h2>
+          <div class="stats">
+            <div class="stat"><div class="k">TAT total</div><div class="v warn">4.3d</div></div>
+            <div class="stat"><div class="k">Espera cliente</div><div class="v bad">2.1d</div></div>
+            <div class="stat"><div class="k">Cola interna</div><div class="v">0.6d</div></div>
+          </div>
+          <div class="g-row">
+            <div class="g-label">Ingesta</div>
+            <div class="g-track"><div class="g-bar auto" style="left:0%;width:8%"></div></div>
+            <div class="g-tat">2h</div>
+          </div>
+          <div class="g-row">
+            <div class="g-label">Datos / CSF</div>
+            <div class="g-track"><div class="g-bar auto" style="left:8%;width:10%"></div></div>
+            <div class="g-tat">5h</div>
+          </div>
+          <div class="g-row">
+            <div class="g-label">Revisión</div>
+            <div class="g-track"><div class="g-bar hitl" style="left:18%;width:12%"></div></div>
+            <div class="g-tat">14h</div>
+          </div>
+          <div class="g-row">
+            <div class="g-label">Espera docs</div>
+            <div class="g-track"><div class="g-bar client" style="left:30%;width:48%"></div></div>
+            <div class="g-tat">2.1d</div>
+          </div>
+          <div class="g-row">
+            <div class="g-label">Riesgo / firma</div>
+            <div class="g-track"><div class="g-bar idle" style="left:78%;width:22%"></div></div>
+            <div class="g-tat">—</div>
+          </div>
+          <div class="g-axis">
+            <div></div>
+            <div class="g-axis-line"><span>0</span><span>1d</span><span>2d</span><span>3d</span><span>hoy</span></div>
+            <div></div>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--ok)"></i>Automático</span>
+            <span><i style="background:var(--primary)"></i>Interno</span>
+            <span><i style="background:var(--warn)"></i>Cliente</span>
+            <span><i style="background:var(--idle)"></i>Bloqueado</span>
+          </div>
+        </section>
+
+        <div class="split">
+          <section class="card">
+            <h2>Actividad</h2>
+            <ul class="tl">
+              <li>
+                <div class="t">Hoy 09:12</div>
+                <div class="rail"><div class="b warn"></div></div>
+                <div>
+                  <strong>Cliente abrió IntakeLink</strong>
+                  <p>Scope: poderes, acta · TTL 48h</p>
+                </div>
+              </li>
+              <li>
+                <div class="t">30 jul</div>
+                <div class="rail"><div class="b fail"></div></div>
+                <div>
+                  <strong>Solicitud de corrección enviada</strong>
+                  <p>Ana M. · 2 gaps · link write-only</p>
+                </div>
+              </li>
+              <li>
+                <div class="t">30 jul</div>
+                <div class="rail"><div class="b fail"></div></div>
+                <div>
+                  <strong>Evaluación FALLA</strong>
+                  <p>R-PODERES-VIGENTE · R-ACTA-COMPLETA</p>
+                </div>
+              </li>
+              <li>
+                <div class="t">29 jul</div>
+                <div class="rail"><div class="b ok"></div></div>
+                <div>
+                  <strong>CSF validada</strong>
+                  <p>Matching RFC / razón social</p>
+                </div>
+              </li>
+              <li>
+                <div class="t">28 jul</div>
+                <div class="rail"><div class="b ok"></div></div>
+                <div>
+                  <strong>Caso creado</strong>
+                  <p>Ingesta mail · 4 adjuntos · T-PM-STD</p>
+                </div>
+              </li>
+            </ul>
+          </section>
+
+          <section class="card">
+            <h2>Gaps</h2>
+            <div class="gap">
+              <strong>Poder notarial vigente</strong>
+              <p>Documento vencido (feb 2024). Se requiere escritura o ratificación ≥ 12 meses.</p>
+            </div>
+            <div class="gap">
+              <strong>Acta constitutiva incompleta</strong>
+              <p>Faltan fólios 4–6 (objeto social).</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <aside>
+        <section class="card">
+          <h2>Acciones</h2>
+          <button class="btn primary" type="button" onclick="toast('Reenviar IntakeLink')">Reenviar IntakeLink</button>
+          <button class="btn ghost" type="button" onclick="toast('Evidencias')">Ver evidencias</button>
+          <button class="btn ghost" type="button" onclick="toast('Override')">Override con audit</button>
+          <button class="btn danger" type="button" onclick="toast('Escalar PLD')">Escalar a PLD</button>
+        </section>
+        <section class="card">
+          <h2>Persona</h2>
+          <div class="kv">
+            <div><span>Tipo</span><b>Persona moral</b></div>
+            <div><span>Actividad</span><b>Comercio</b></div>
+            <div><span>Part. indirecto</span><b>No</b></div>
+            <div><span>Rep. legal</span><b>Laura Gómez</b></div>
+            <div><span>Docs req.</span><b>Acta, CSF, acuse AV</b></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script>
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(window.__t);
+  window.__t = setTimeout(() => { el.style.display = 'none'; }, 1800);
+}
+</script>
+</body>
+</html>

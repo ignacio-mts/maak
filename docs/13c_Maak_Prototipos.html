@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Maak · Prototipos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Open+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F172A;--ink2:#334155;--muted:#64748B;--line:#E2E8F0;--bg:#F1F5F9;--s:#fff;
+  --p:#2563EB;--ps:#DBEAFE;--ok:#059669;--okb:#ECFDF5;--w:#D97706;--wb:#FFFBEB;--f:#DC2626;--fb:#FEF2F2;--idle:#94A3B8;
+  --fu:"Open Sans",system-ui,sans-serif;--fd:Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--fd);font-size:14px}
+.wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+h1{font-family:var(--fu);font-size:28px;margin:0 0 6px;letter-spacing:-.02em}
+.lead{color:var(--muted);margin:0 0 28px;font-size:14px}
+.vignette{background:var(--s);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:22px;overflow:hidden}
+.v-tag{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--p);margin-bottom:10px}
+.v-note{font-size:13px;color:var(--muted);margin:0 0 10px;line-height:1.4}.v-title{font-family:var(--fu);font-size:17px;font-weight:700;margin:0 0 14px}
+.flow{display:flex}.step{flex:1;min-width:90px;padding:10px 8px;border:1px solid var(--line);background:#FAFBFC}
+.step+.step{border-left:0}.step:first-child{border-radius:8px 0 0 8px}.step:last-child{border-radius:0 8px 8px 0}
+.step .n{font-size:10px;color:var(--muted);font-weight:600}.step .l{font-size:12px;font-weight:700;margin:3px 0}
+.step .s{font-size:11px;font-weight:600}.done{background:var(--okb);border-color:#A7F3D0}.done .s{color:var(--ok)}
+.now{background:var(--ps);border-color:var(--p);box-shadow:inset 0 0 0 1px var(--p)}.now .s{color:var(--p)}
+.blocked{background:var(--fb);border-color:#FECACA}.blocked .s{color:var(--f)}.todo .s{color:var(--muted)}
+.g-row{display:grid;grid-template-columns:110px 1fr 48px;gap:8px;align-items:center;margin-bottom:7px}
+.g-lab{font-size:12px;font-weight:600;color:var(--ink2)}.g-tr{height:18px;background:#F1F5F9;border-radius:4px;position:relative;overflow:hidden}
+.g-b{position:absolute;top:2px;bottom:2px;border-radius:3px}.auto{background:var(--ok)}.hitl{background:var(--p)}.cli{background:var(--w)}.idl{background:var(--idle);opacity:.55}
+.g-tat{font-size:11px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 9px;border-radius:999px}
+.fail{background:var(--fb);color:var(--f)}.warn{background:var(--wb);color:var(--w)}.ok{background:var(--okb);color:var(--ok)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.gap{border:1px solid #FECACA;background:var(--fb);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.gap strong{display:block;font-size:13px}.gap p{margin:3px 0 0;font-size:12px;color:var(--muted)}
+.btn{border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:700;background:var(--p);color:#fff;cursor:pointer}
+.mail{border:1px solid var(--line);border-radius:10px;padding:12px;background:#F8FAFC;margin-bottom:10px}
+.mail .from{font-size:12px;color:var(--muted)}.mail .sub{font-weight:700;margin:4px 0}
+.arrow{text-align:center;color:var(--muted);font-size:12px;margin:6px 0}
+.case-mini{border:1px solid var(--p);background:var(--ps);border-radius:10px;padding:12px}
+.rule{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+.impact{background:#0F172A;color:#fff;border-radius:10px;padding:14px;margin-top:10px}
+.impact b{color:#93C5FD}.queue .row{display:grid;grid-template-columns:1fr 90px 100px 72px;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12.5px;align-items:center}
+.queue .row:last-child{border-bottom:0}.queue .h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.okcard{background:linear-gradient(135deg,#ECFDF5,#DBEAFE);border:1px solid #A7F3D0;border-radius:12px;padding:18px;text-align:center}
+.okcard .big{font-family:var(--fu);font-size:22px;font-weight:800;color:var(--ok);margin:8px 0}
+.okcard .ev{font-family:ui-monospace,monospace;font-size:12px;background:#fff;border-radius:6px;padding:8px;display:inline-block;margin-top:8px;color:var(--ink2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:720px){.two,.queue .row{grid-template-columns:1fr}}
+.link{font-size:12px;color:var(--muted);margin-top:8px}.link a{color:var(--p)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Maak · Prototipos</h1>
+  <p class="lead">Viñetas de UI. Nota breve + interfaz limpia. DS SPEI 3.0 · Open Sans / Inter.</p>
+
+  <article class="vignette" id="intake">
+    <p class="v-note">Write-only: solo gaps tipados, sin expediente ni PII en la URL.</p>
+    <div class="v-tag">Cliente</div>
+    <h2 class="v-title">IntakeLink</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:12px;color:var(--muted)">stp.mx/i/•••••••• · TTL 47h</div>
+      <span class="pill warn"><span class="dot"></span> 2 pendientes</span>
+    </div>
+    <div class="gap"><strong>Poder notarial vigente</strong><p>Subí escritura o ratificación con fecha ≥ 12 meses.</p>
+      <button class="btn" style="margin-top:8px;width:100%">Subir documento</button></div>
+    <div class="gap"><strong>Acta — fólios 4 al 6</strong><p>Falta el objeto social. Subí el PDF completo o las páginas faltantes.</p>
+      <button class="btn" style="margin-top:8px;width:100%;background:#fff;color:var(--p);border:1px solid var(--p)">Subir páginas</button></div>
+  </article>
+
+  <article class="vignette" id="hitl">
+    <p class="v-note">Paso actual del template + tiempo por etapa (quién tiene la pelota).</p>
+    <div class="v-tag">HITL</div>
+    <h2 class="v-title">Caso</h2>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+      <div><strong>Comercializadora Delta</strong> · CSK-08421</div>
+      <span class="pill fail"><span class="dot"></span> FALLA · espera cliente</span>
+    </div>
+    <div class="flow" style="margin-bottom:14px">
+      <div class="step done"><div class="n">01</div><div class="l">Ingesta</div><div class="s">OK</div></div>
+      <div class="step done"><div class="n">02</div><div class="l">Datos</div><div class="s">OK</div></div>
+      <div class="step blocked now"><div class="n">03</div><div class="l">Docs</div><div class="s">Bloqueado</div></div>
+      <div class="step todo"><div class="n">04</div><div class="l">Riesgo</div><div class="s">—</div></div>
+      <div class="step todo"><div class="n">05</div><div class="l">Firma</div><div class="s">—</div></div>
+      <div class="step todo"><div class="n">06</div><div class="l">PersonaOK</div><div class="s">—</div></div>
+    </div>
+    <div class="g-row"><div class="g-lab">Revisión</div><div class="g-tr"><div class="g-b hitl" style="left:18%;width:12%"></div></div><div class="g-tat">14h</div></div>
+    <div class="g-row"><div class="g-lab">Espera docs</div><div class="g-tr"><div class="g-b cli" style="left:30%;width:48%"></div></div><div class="g-tat">2.1d</div></div>
+    <div class="g-row"><div class="g-lab">Riesgo/firma</div><div class="g-tr"><div class="g-b idl" style="left:78%;width:22%"></div></div><div class="g-tat">—</div></div>
+    <p class="link"><a href="13b_Maak_HITL_Caso_Prototipo.html">Abrir pantalla HITL completa →</a></p>
+  </article>
+
+  <article class="vignette" id="ingesta">
+    <p class="v-note">El agente convierte un mail con adjuntos en ComplianceCase tipado.</p>
+    <div class="v-tag">Agente</div>
+    <h2 class="v-title">Ingesta</h2>
+    <div class="mail">
+      <div class="from">De: comercial@delta.mx · hace 12s</div>
+      <div class="sub">Alta PM — docs adjuntos (4)</div>
+      <div style="font-size:12px;color:var(--muted)">Acta.pdf · CSF.pdf · Poder.pdf · INE_RL.pdf</div>
+    </div>
+    <div class="arrow">↓ agente Maak</div>
+    <div class="case-mini">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <div><strong>CSK-2026-08422</strong> creado · T-PM-STD</div>
+        <span class="pill ok"><span class="dot"></span> CSF auto-OK</span>
+      </div>
+      <div style="font-size:12px;margin-top:6px;color:var(--ink2)">Cola HITL · gap preliminar: validar poderes</div>
+    </div>
+  </article>
+
+  <article class="vignette" id="reglas">
+    <p class="v-note">Al publicar una regla, el motor muestra el impacto (RecheckJob) antes de confirmar.</p>
+    <div class="v-tag">PLD / Ops</div>
+    <h2 class="v-title">Reglas</h2>
+    <div class="rule">
+      <div>
+        <div style="font-weight:700">R-PODERES-VIGENTE</div>
+        <div style="font-size:12px;color:var(--muted)">Vigencia máxima: 12 → <b style="color:var(--p)">18 meses</b></div>
+      </div>
+      <button class="btn">Publicar</button>
+    </div>
+    <div class="impact">
+      RecheckJob preview · <b>847 Personas</b> en cohort PM estándar<br>
+      <span style="font-size:12px;opacity:.85">612 PASS · 198 → AdequacyPlan · 37 bloqueo potencial</span>
+    </div>
+  </article>
+
+  <article class="vignette" id="cola">
+    <p class="v-note">Cola ordenada por estado y dueño de la pelota.</p>
+    <div class="v-tag">HITL</div>
+    <h2 class="v-title">Cola</h2>
+    <div class="queue">
+      <div class="row h"><div>Caso</div><div>Estado</div><div>Pelota</div><div>TAT</div></div>
+      <div class="row"><div><b>Delta SA</b><br><span style="color:var(--muted)">CSK-08421</span></div><div><span class="pill fail">FALLA</span></div><div>Cliente</div><div style="color:var(--f);font-weight:700">2.1d</div></div>
+      <div class="row"><div><b>Norte Logística</b><br><span style="color:var(--muted)">CSK-08418</span></div><div><span class="pill warn">HITL</span></div><div>Ana M.</div><div style="font-weight:700">4h</div></div>
+      <div class="row"><div><b>CC Acme-03</b><br><span style="color:var(--muted)">CSK-08415</span></div><div><span class="pill ok">AUTO</span></div><div>Motor</div><div>12m</div></div>
+    </div>
+  </article>
+
+  <article class="vignette" id="personaok">
+    <p class="v-note">Maak certifica Persona verificada y emite el evento hacia core / adapter.</p>
+    <div class="v-tag">Sistema</div>
+    <h2 class="v-title">PersonaOK</h2>
+    <div class="okcard">
+      <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Comercializadora Delta</div>
+      <div class="big">Persona VERIFICADA</div>
+      <div class="ev">event PersonaOK → core.headless</div>
+    </div>
+  </article>
+</div>
+</body>
+</html>
