@@ -1,7 +1,11 @@
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { getSessionOptions, type SiteSession } from "@/lib/session";
+import {
+  getSessionOptions,
+  getSitePassword,
+  type SiteSession,
+} from "@/lib/session";
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as {
@@ -9,7 +13,7 @@ export async function POST(request: Request) {
   } | null;
 
   const submitted = body?.password ?? "";
-  const expected = process.env.SITE_PASSWORD ?? "";
+  const expected = getSitePassword();
 
   if (!expected || submitted !== expected) {
     return NextResponse.json(
