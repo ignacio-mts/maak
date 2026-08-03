@@ -23,7 +23,7 @@ const toneDot = {
 
 export default function CaseDetailPage() {
   const params = useParams<{ id: string }>();
-  const { cases, advanceCase, resolveGap, requestClientDocs } = useCases();
+  const { cases, advanceCase, resolveGap, requestClientDocs, completeCaseToVerified } = useCases();
   const c = cases.find((x) => x.id === params.id);
 
   if (!c) {
@@ -73,6 +73,18 @@ export default function CaseDetailPage() {
           ) : null}
         </div>
       </header>
+
+      
+      <section className="card mb-4">
+        <h2>Flujo {personKindLabel[c.kind]}</h2>
+        <p className="m-0 text-[13px] text-[var(--muted)]">
+          {c.kind === "legal_entity"
+            ? "Datos → documentos → riesgo / PLD → firma de contrato → persona verificada."
+            : c.kind === "natural_person"
+              ? "Datos → identidad (INE) → listas → firma → persona verificada."
+              : "Alta CC → vínculo al padre → gate GE → listas → persona verificada."}
+        </p>
+      </section>
 
       {(c.verified || c.status === "verified") && (
         <section className="card mb-4 border-[#A7F3D0] bg-gradient-to-br from-[var(--ok-bg)] to-[var(--primary-soft)] text-center">
@@ -190,6 +202,13 @@ export default function CaseDetailPage() {
                   className="mb-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-[13px] font-bold"
                 >
                   Pedir docs al cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={() => completeCaseToVerified(c.id)}
+                  className="mb-2 w-full rounded-lg border border-[var(--ok)] bg-[var(--ok-bg)] px-3 py-2.5 text-[13px] font-bold text-[var(--ok)]"
+                >
+                  Simular hasta verificación
                 </button>
               </>
             ) : null}

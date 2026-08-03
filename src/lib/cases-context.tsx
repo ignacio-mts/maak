@@ -19,6 +19,7 @@ type CasesContextValue = {
   advanceCase: (caseId: string) => void;
   resolveGap: (caseId: string, gapId: string) => void;
   requestClientDocs: (caseId: string) => void;
+  completeCaseToVerified: (caseId: string) => void;
 };
 
 const CasesContext = createContext<CasesContextValue | null>(null);
@@ -301,6 +302,33 @@ export function CasesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  
+  const completeCaseToVerified = useCallback((caseId: string) => {
+    setCases((prev) =>
+      prev.map((c) => {
+        if (c.id !== caseId) return c;
+        return {
+          ...c,
+          gaps: [],
+          status: "verified",
+          verified: true,
+          ownership: "engine",
+          tat: "—",
+          steps: c.steps.map((s) => ({ ...s, state: "done" as const, detail: "Completado" })),
+          timeline: [
+            {
+              time: "ahora",
+              title: "Persona verificada",
+              detail: "Flujo completado (simulación E2E)",
+              tone: "ok",
+            },
+            ...c.timeline,
+          ],
+        };
+      }),
+    );
+  }, []);
+
   const value = useMemo(
     () => ({
       cases,
@@ -310,6 +338,7 @@ export function CasesProvider({ children }: { children: ReactNode }) {
       advanceCase,
       resolveGap,
       requestClientDocs,
+      completeCaseToVerified,
     }),
     [
       cases,
@@ -319,6 +348,7 @@ export function CasesProvider({ children }: { children: ReactNode }) {
       advanceCase,
       resolveGap,
       requestClientDocs,
+      completeCaseToVerified,
     ],
   );
 
