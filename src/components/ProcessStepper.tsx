@@ -1,10 +1,10 @@
 import type { ProcessStep } from "@/lib/types";
 
 const stepClass: Record<ProcessStep["state"], string> = {
-  done: "bg-[var(--ok-bg)] border-[#A7F3D0] [&_.detail]:text-[var(--ok)]",
+  done: "bg-[var(--ok-bg)] border-[var(--ok-line)] [&_.detail]:text-[var(--ok)]",
   current: "bg-[var(--primary-soft)] border-[var(--primary)] shadow-[inset_0_0_0_1px_var(--primary)] [&_.detail]:text-[var(--primary)]",
-  blocked: "bg-[var(--fail-bg)] border-[#FECACA] [&_.detail]:text-[var(--fail)]",
-  todo: "bg-[#FAFBFC] border-[var(--line)] [&_.detail]:text-[var(--muted)]",
+  blocked: "bg-[var(--fail-bg)] border-[var(--fail-line)] [&_.detail]:text-[var(--fail)]",
+  todo: "bg-[var(--surface-2)] border-[var(--line)] [&_.detail]:text-[var(--muted)]",
 };
 
 export function ProcessStepper({ steps }: { steps: ProcessStep[] }) {

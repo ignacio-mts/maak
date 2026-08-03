@@ -63,7 +63,9 @@ export default function IngestionPage() {
               setCreatedId(null);
             }}
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              kind === k ? "bg-[var(--primary)] text-white" : "border border-[var(--line)] bg-white"
+              kind === k
+                ? "bg-[var(--action)] text-[var(--action-fg)]"
+                : "border border-[var(--line)] bg-[var(--surface)] hover:border-[var(--line-strong)]"
             }`}
           >
             {personKindLabel[k]}
@@ -74,7 +76,7 @@ export default function IngestionPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <section className="card">
           <h2>Entrada</h2>
-          <div className="rounded-[10px] border border-[var(--line)] bg-[#F8FAFC] p-3">
+          <div className="rounded-[10px] border border-[var(--line)] bg-[var(--surface-2)] p-3">
             <div className="text-xs text-[var(--muted)]">De: {demo.from} · hace 12s</div>
             <div className="my-1 font-bold">{demo.subject}</div>
             <div className="text-xs text-[var(--muted)]">{demo.attachments}</div>
@@ -85,7 +87,7 @@ export default function IngestionPage() {
               const c = addCaseFromIngestion(kind, demo.name, demo.rfc);
               setCreatedId(c.id);
             }}
-            className="mt-3 w-full rounded-lg bg-[var(--primary)] px-3 py-2.5 text-[13px] font-bold text-white"
+            className="mt-3 w-full rounded-lg bg-[var(--action)] px-3 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]"
           >
             Ejecutar agente
           </button>

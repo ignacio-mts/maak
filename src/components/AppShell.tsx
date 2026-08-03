@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCases } from "@/lib/cases-context";
 import { openReviewCount, operator } from "@/lib/data";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const nav = [
   { href: "/", label: "Inicio", match: (p: string) => p === "/" },
@@ -37,21 +38,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-[13.5px] font-medium ${
                 active
                   ? "bg-[var(--primary-soft)] font-bold text-[var(--primary)]"
-                  : "text-[var(--ink-2)] hover:bg-[#EEF2FF]"
+                  : "text-[var(--ink-2)] hover:bg-[var(--surface-2)]"
               }`}
             >
               {item.label}
               {item.badge && badge > 0 ? (
-                <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 text-[11px] font-bold text-white">
+                <span className="rounded-full bg-[var(--action)] px-2 py-0.5 text-[11px] font-bold text-[var(--action-fg)]">
                   {badge}
                 </span>
               ) : null}
             </Link>
           );
         })}
-        <div className="mt-auto border-t border-[var(--line)] px-2.5 pt-3">
+        <div className="mt-auto flex flex-col gap-3 border-t border-[var(--line)] px-2.5 pt-3">
+          <ThemeToggle />
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
+            <div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--action)] text-xs font-bold text-[var(--action-fg)]">
               {operator.initials}
             </div>
             <div>
