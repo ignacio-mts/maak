@@ -2,7 +2,7 @@ import type { ProcessStep } from "@/lib/types";
 
 const stepClass: Record<ProcessStep["state"], string> = {
   done: "bg-[var(--ok-bg)] border-[#A7F3D0] [&_.detail]:text-[var(--ok)]",
-  now: "bg-[var(--primary-soft)] border-[var(--primary)] shadow-[inset_0_0_0_1px_var(--primary)] [&_.detail]:text-[var(--primary)]",
+  current: "bg-[var(--primary-soft)] border-[var(--primary)] shadow-[inset_0_0_0_1px_var(--primary)] [&_.detail]:text-[var(--primary)]",
   blocked: "bg-[var(--fail-bg)] border-[#FECACA] [&_.detail]:text-[var(--fail)]",
   todo: "bg-[#FAFBFC] border-[var(--line)] [&_.detail]:text-[var(--muted)]",
 };

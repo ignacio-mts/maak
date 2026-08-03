@@ -1,12 +1,15 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ProcessStepper } from "@/components/ProcessStepper";
 import { StatusPill } from "@/components/StatusPill";
-import { getCase } from "@/lib/data";
+import { useCases } from "@/lib/cases-context";
+import { channelLabel, ownershipLabel, personKindLabel, statusLabel } from "@/lib/labels";
 
 const barColor = {
   auto: "bg-[var(--ok)]",
-  hitl: "bg-[var(--primary)]",
+  internal: "bg-[var(--primary)]",
   client: "bg-[var(--warn)]",
   idle: "bg-[var(--idle)] opacity-55",
 } as const;
@@ -18,15 +21,26 @@ const toneDot = {
   neutral: "border-[var(--primary)] bg-white",
 } as const;
 
-export default async function CasoPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const c = getCase(id);
-  if (!c) notFound();
+export default function CaseDetailPage() {
+  const params = useParams<{ id: string }>();
+  const { cases, advanceCase, resolveGap, requestClientDocs } = useCases();
+  const c = cases.find((x) => x.id === params.id);
+
+  if (!c) {
+    return (
+      <div className="card">
+        <h1 className="m-0 font-[family-name:var(--font-ui)] text-xl font-bold">Caso no encontrado</h1>
+        <Link href="/cases" className="mt-3 inline-block text-[13px] font-bold text-[var(--primary)]">
+          Volver a la cola
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="mb-3.5 text-xs text-[var(--muted)]">
-        <Link href="/cola" className="text-[var(--muted)]">Casos</Link> / Onboarding /{" "}
+        <Link href="/cases" className="text-[var(--muted)]">Casos</Link> / {personKindLabel[c.kind]} /{" "}
         <strong className="font-semibold text-[var(--ink-2)]">{c.id}</strong>
       </div>
 
@@ -36,33 +50,41 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
           <div className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[13px] text-[var(--muted)]">
             <span>{c.id}</span>
             <span>RFC <b className="font-semibold text-[var(--ink)]">{c.rfc}</b></span>
+            <span>{personKindLabel[c.kind]}</span>
             <span>{c.template}</span>
-            <span>{c.channel}</span>
+            <span>{channelLabel[c.channel] ?? c.channel}</span>
+            {c.parentName ? <span>Padre <b className="font-semibold text-[var(--ink)]">{c.parentName}</b></span> : null}
             <span>Abierto <b className="font-semibold text-[var(--ink)]">{c.openFor}</b></span>
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <StatusPill
             status={c.status}
-            label={c.personaOk ? "Persona VERIFICADA" : c.status === "FALLA" ? `FALLA · ${c.gaps.length} gaps` : c.status}
+            label={
+              c.verified || c.status === "verified"
+                ? "Persona verificada"
+                : c.status === "blocked"
+                  ? `Bloqueado · ${c.gaps.length} pendientes`
+                  : statusLabel[c.status]
+            }
           />
-          {c.intakeToken ? (
-            <StatusPill status="HITL" label="IntakeLink enviado" />
+          {c.intakeToken && c.status === "blocked" ? (
+            <StatusPill status="in_review" label="Enlace de documentos enviado" />
           ) : null}
         </div>
       </header>
 
-      {c.personaOk ? (
+      {(c.verified || c.status === "verified") && (
         <section className="card mb-4 border-[#A7F3D0] bg-gradient-to-br from-[var(--ok-bg)] to-[var(--primary-soft)] text-center">
           <div className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{c.name}</div>
           <div className="my-2 font-[family-name:var(--font-ui)] text-[22px] font-extrabold text-[var(--ok)]">
-            Persona VERIFICADA
+            Persona verificada
           </div>
           <code className="mt-2 inline-block rounded-md bg-white px-2 py-2 font-mono text-xs text-[var(--ink-2)]">
-            event PersonaOK → core.headless
+            evento PersonaVerificada → core
           </code>
         </section>
-      ) : null}
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
         <div>
@@ -114,7 +136,7 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
                 {c.timeline.map((ev) => (
                   <li key={ev.title + ev.time} className="grid grid-cols-[64px_12px_1fr] gap-2.5 pb-3.5 last:pb-0">
                     <div className="pt-0.5 text-[11px] tabular-nums text-[var(--muted)]">{ev.time}</div>
-                    <div className="relative">
+                    <div>
                       <div className={`mt-1 h-2.5 w-2.5 rounded-full border-2 ${toneDot[ev.tone]}`} />
                     </div>
                     <div>
@@ -127,14 +149,21 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
             </section>
 
             <section className="card">
-              <h2>Gaps tipados</h2>
+              <h2>Pendientes</h2>
               {c.gaps.length === 0 ? (
-                <p className="m-0 text-[13px] text-[var(--muted)]">Sin gaps abiertos.</p>
+                <p className="m-0 text-[13px] text-[var(--muted)]">Sin pendientes abiertas.</p>
               ) : (
                 c.gaps.map((g) => (
                   <div key={g.id} className="mb-2 rounded-lg border border-[#FECACA] bg-[var(--fail-bg)] px-3 py-2.5">
                     <strong className="mb-0.5 block text-[13px]">{g.title}</strong>
                     <p className="m-0 text-xs text-[var(--muted)]">{g.description}</p>
+                    <button
+                      type="button"
+                      onClick={() => resolveGap(c.id, g.id)}
+                      className="mt-2 text-xs font-bold text-[var(--primary)]"
+                    >
+                      Marcar resuelta (equipo)
+                    </button>
                   </div>
                 ))
               )}
@@ -145,24 +174,46 @@ export default async function CasoPage({ params }: { params: Promise<{ id: strin
         <aside>
           <section className="card">
             <h2>Acciones</h2>
+            {!(c.verified || c.status === "verified") ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => advanceCase(c.id)}
+                  disabled={c.gaps.length > 0}
+                  className="mb-2 w-full rounded-lg bg-[var(--primary)] px-3 py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+                >
+                  Avanzar etapa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => requestClientDocs(c.id)}
+                  className="mb-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-[13px] font-bold"
+                >
+                  Pedir docs al cliente
+                </button>
+              </>
+            ) : null}
             {c.intakeToken ? (
               <Link
                 href={`/intake/${c.intakeToken}`}
-                className="mb-2 block w-full rounded-lg bg-[var(--primary)] px-3 py-2.5 text-center text-[13px] font-bold text-white"
+                className="mb-2 block w-full rounded-lg border border-[var(--primary)] bg-[var(--primary-soft)] px-3 py-2.5 text-center text-[13px] font-bold text-[var(--primary)]"
               >
-                Abrir IntakeLink
+                Abrir enlace del cliente
               </Link>
             ) : null}
-            <button type="button" className="mb-2 w-full rounded-lg border border-[var(--line)] bg-white px-3 py-2.5 text-[13px] font-bold">
-              Reasignar
-            </button>
-            <button type="button" className="mb-2 w-full rounded-lg border border-[#FECACA] bg-[var(--fail-bg)] px-3 py-2.5 text-[13px] font-bold text-[var(--fail)]">
-              Escalar a PLD
-            </button>
             <div className="mt-3 grid gap-2 text-[13px] text-[var(--muted)]">
-              <div className="flex justify-between gap-3"><span>Pelota</span><b className="font-semibold text-[var(--ink)]">{c.ball}</b></div>
-              <div className="flex justify-between gap-3"><span>Template</span><b className="font-semibold text-[var(--ink)]">{c.template}</b></div>
-              <div className="flex justify-between gap-3"><span>Canal</span><b className="font-semibold text-[var(--ink)]">{c.channel}</b></div>
+              <div className="flex justify-between gap-3">
+                <span>A cargo de</span>
+                <b className="font-semibold text-[var(--ink)]">{ownershipLabel[c.ownership]}</b>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Plantilla</span>
+                <b className="font-semibold text-[var(--ink)]">{c.template}</b>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span>Tipo</span>
+                <b className="font-semibold text-[var(--ink)]">{personKindLabel[c.kind]}</b>
+              </div>
             </div>
           </section>
         </aside>

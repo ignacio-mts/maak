@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { openHitlCount, operator } from "@/lib/data";
+import { useCases } from "@/lib/cases-context";
+import { openReviewCount, operator } from "@/lib/data";
 
 const nav = [
-  { href: "/cola", label: "Casos", badge: openHitlCount },
-  { href: "/ingesta", label: "Ingesta" },
-  { href: "/reglas", label: "Reglas" },
-  { href: "/casos/CSK-2026-08410", label: "PersonaOK" },
+  { href: "/", label: "Inicio", match: (p: string) => p === "/" },
+  { href: "/cases", label: "Casos", match: (p: string) => p.startsWith("/cases"), badge: true },
+  { href: "/onboarding", label: "Nueva alta", match: (p: string) => p.startsWith("/onboarding") },
+  { href: "/ingestion", label: "Ingesta", match: (p: string) => p.startsWith("/ingestion") },
+  { href: "/people", label: "Personas", match: (p: string) => p.startsWith("/people") },
+  { href: "/rules", label: "Reglas", match: (p: string) => p.startsWith("/rules") },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { cases } = useCases();
+  const badge = openReviewCount(cases);
 
   return (
     <div className="grid min-h-screen grid-cols-1 md:grid-cols-[220px_1fr]">
@@ -20,13 +25,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mb-4 px-2.5 font-[family-name:var(--font-ui)] text-xl font-extrabold tracking-tight">
           Maak
           <span className="mt-0.5 block text-xs font-semibold tracking-normal text-[var(--muted)]">
-            Backoffice · prototipo
+            Gestión de clientes
           </span>
         </div>
         {nav.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href === "/cola" && pathname.startsWith("/casos") && !pathname.includes("08410"));
+          const active = item.match(pathname);
           return (
             <Link
               key={item.href}
@@ -38,9 +41,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               }`}
             >
               {item.label}
-              {item.badge ? (
+              {item.badge && badge > 0 ? (
                 <span className="rounded-full bg-[var(--primary)] px-2 py-0.5 text-[11px] font-bold text-white">
-                  {item.badge}
+                  {badge}
                 </span>
               ) : null}
             </Link>

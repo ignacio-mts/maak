@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Open_Sans } from "next/font/google";
+import { CasesProvider } from "@/lib/cases-context";
 import "./globals.css";
 
 const openSans = Open_Sans({
@@ -15,14 +16,16 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Maak · Prototipo SGC",
-  description: "Prototipo clickable Maak — onboarding Persona / HITL / IntakeLink",
+  title: "Maak · Gestión de clientes",
+  description: "Prototipo Maak — onboarding de personas, revisión y reglas",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${openSans.variable} ${inter.variable} h-full antialiased`}>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <CasesProvider>{children}</CasesProvider>
+      </body>
     </html>
   );
 }
