@@ -146,10 +146,10 @@ function OnboardingInner() {
             key={n as number}
             className={`rounded-full px-3 py-1.5 ${
               step === n
-                ? "bg-[var(--primary)] text-white"
+                ? "bg-[var(--action)] text-[var(--action-fg)]"
                 : step > (n as number)
                   ? "bg-[var(--ok-bg)] text-[var(--ok)]"
-                  : "bg-[#E2E8F0] text-[var(--muted)]"
+                  : "bg-[var(--surface-2)] text-[var(--muted)]"
             }`}
           >
             {label as string}
@@ -245,7 +245,7 @@ function OnboardingInner() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold"
+                className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
               >
                 Atrás
               </button>
@@ -255,7 +255,7 @@ function OnboardingInner() {
                   !name || !rfc || !email || (kind === "cost_center" && !parentCaseId)
                 }
                 onClick={() => setStep(3)}
-                className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+                className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
               >
                 Continuar a documentos
               </button>
@@ -299,7 +299,7 @@ function OnboardingInner() {
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
             >
               Atrás
             </button>
@@ -307,7 +307,7 @@ function OnboardingInner() {
               type="button"
               disabled={!docsReady}
               onClick={create}
-              className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+              className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
             >
               Crear caso en revisión
             </button>
@@ -327,7 +327,7 @@ function OnboardingInner() {
             <button
               type="button"
               onClick={() => router.push(`/cases/${createdId}`)}
-              className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white"
+              className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]"
             >
               Abrir caso
             </button>
@@ -343,7 +343,7 @@ function OnboardingInner() {
             </button>
             <Link
               href="/cases"
-              className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold"
+              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
             >
               Ver cola
             </Link>

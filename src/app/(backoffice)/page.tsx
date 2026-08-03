@@ -68,13 +68,13 @@ export default function HomePage() {
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/cases" className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white">
+        <Link href="/cases" className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]">
           Ir a cola de casos
         </Link>
-        <Link href="/ingestion" className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold">
+        <Link href="/ingestion" className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]">
           Simular ingesta por correo
         </Link>
-        <Link href="/rules" className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold">
+        <Link href="/rules" className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]">
           Configurar reglas
         </Link>
       </div>
@@ -86,7 +86,7 @@ export default function HomePage() {
             <Link
               key={c.id}
               href={`/cases/${c.id}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2.5 hover:bg-[#F8FAFC]"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2.5 hover:bg-[var(--surface-2)]"
             >
               <div>
                 <div className="font-bold">{c.name}</div>

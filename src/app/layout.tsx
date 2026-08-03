@@ -20,10 +20,17 @@ export const metadata: Metadata = {
   description: "Prototipo Maak — onboarding de personas, revisión y reglas",
 };
 
+const themeInit = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}var e=document.documentElement;e.classList.toggle('dark',t==='dark');e.style.colorScheme=t;}catch(e){}})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={`${openSans.variable} ${inter.variable} h-full antialiased`}>
+    <html
+      lang="es"
+      suppressHydrationWarning
+      className={`${openSans.variable} ${inter.variable} h-full antialiased`}
+    >
       <body className="min-h-full">
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <CasesProvider>{children}</CasesProvider>
       </body>
     </html>
