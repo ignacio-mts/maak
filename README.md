@@ -28,7 +28,7 @@ Abrir [http://localhost:3000](http://localhost:3000) → `/login` → `loquevien
 | `/` | Inicio / atajos de flujos |
 | `/cases` | Casos pendientes (filtros PM / PF / CC) |
 | `/cases/[id]` | Detalle: proceso, tiempos, pendientes, acciones |
-| `/onboarding` | Alta asistida E2E (moral, física, centro de costo) |
+| `/onboarding` | Alta asistida: docs/ZIP → extracción → verificar datos |
 | `/ingestion` | Agente: correo → caso |
 | `/people` | Personas verificadas |
 | `/rules` | Configuración de reglas + vista previa de impacto |
