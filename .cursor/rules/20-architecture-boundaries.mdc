@@ -1,0 +1,12 @@
+---
+description: Ola 1 Vercel mock vs Ola 2 API Fargate boundaries
+alwaysApply: true
+---
+
+# Architecture boundaries
+
+- Ola 1: UI + mocks only. No real DB, IdP RBAC, or adapters.
+- Ola 2: Maak API on Fargate; FaceBinding + SICLI adapters; SQS later.
+- Do not add Account/SPEI surfaces “for completeness.”
+- Rules: in-app SM (+ SQS later), not Camunda — `docs/adr/ADR-001_Rules_Engine_Light.md`.
+- Diagram/detail: `docs/engineering/ARCHITECTURE.md`.

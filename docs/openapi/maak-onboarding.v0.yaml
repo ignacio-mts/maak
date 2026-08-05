@@ -1,0 +1,331 @@
+openapi: 3.0.3
+info:
+  title: Maak Onboarding API
+  version: 0.0.0
+  description: |
+    DRAFT stub only — not implemented in ola 1 (Vercel mock).
+    Paths sketch ola 2 Maak API (Fargate). No Account/SPEI/CLABE resources.
+servers:
+  - url: https://api.maak.example/v0
+    description: Placeholder
+tags:
+  - name: cases
+  - name: personas
+  - name: intake-links
+  - name: memberships
+  - name: face-sessions
+paths:
+  /cases:
+    get:
+      tags: [cases]
+      summary: List cases (queue)
+      parameters:
+        - in: query
+          name: kind
+          schema:
+            type: string
+            enum: [legal_entity, natural_person, cost_center]
+        - in: query
+          name: status
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Case list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Case"
+    post:
+      tags: [cases]
+      summary: Create onboarding case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCaseRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+  /cases/{caseId}:
+    get:
+      tags: [cases]
+      summary: Get case detail
+      parameters:
+        - $ref: "#/components/parameters/caseId"
+      responses:
+        "200":
+          description: Case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Case"
+  /personas:
+    get:
+      tags: [personas]
+      summary: List personas (verified directory filters TBD)
+      responses:
+        "200":
+          description: Persona list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Persona"
+  /personas/{personaId}:
+    get:
+      tags: [personas]
+      summary: Get persona
+      parameters:
+        - $ref: "#/components/parameters/personaId"
+      responses:
+        "200":
+          description: Persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+  /intake-links:
+    post:
+      tags: [intake-links]
+      summary: Create write-only intake link for a case
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [caseId]
+              properties:
+                caseId:
+                  type: string
+                expiresAt:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntakeLink"
+  /intake-links/{token}:
+    get:
+      tags: [intake-links]
+      summary: Resolve intake link (client)
+      parameters:
+        - $ref: "#/components/parameters/token"
+      responses:
+        "200":
+          description: Intake context
+    post:
+      tags: [intake-links]
+      summary: Submit gap payload (write-only)
+      parameters:
+        - $ref: "#/components/parameters/token"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "202":
+          description: Accepted
+  /memberships:
+    get:
+      tags: [memberships]
+      summary: List user↔parentPersona memberships
+      responses:
+        "200":
+          description: Memberships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Membership"
+    post:
+      tags: [memberships]
+      summary: Create membership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Membership"
+      responses:
+        "201":
+          description: Created
+  /face-sessions:
+    post:
+      tags: [face-sessions]
+      summary: Create FaceBinding session (port; vendor via adapter)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [caseId, purpose]
+              properties:
+                caseId:
+                  type: string
+                personaId:
+                  type: string
+                purpose:
+                  type: string
+                  enum: [onboarding_liveness, remediation]
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceSession"
+  /face-sessions/{sessionId}:
+    get:
+      tags: [face-sessions]
+      summary: Get face session status
+      parameters:
+        - $ref: "#/components/parameters/sessionId"
+      responses:
+        "200":
+          description: Session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceSession"
+components:
+  parameters:
+    caseId:
+      in: path
+      name: caseId
+      required: true
+      schema:
+        type: string
+    personaId:
+      in: path
+      name: personaId
+      required: true
+      schema:
+        type: string
+    token:
+      in: path
+      name: token
+      required: true
+      schema:
+        type: string
+    sessionId:
+      in: path
+      name: sessionId
+      required: true
+      schema:
+        type: string
+  schemas:
+    Case:
+      type: object
+      properties:
+        id:
+          type: string
+        personaId:
+          type: string
+        kind:
+          type: string
+          enum: [legal_entity, natural_person, cost_center]
+        status:
+          type: string
+        gaps:
+          type: array
+          items:
+            $ref: "#/components/schemas/Gap"
+    Gap:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        ownership:
+          type: string
+          enum: [client, reviewer, engine, compliance]
+    CreateCaseRequest:
+      type: object
+      required: [kind, name, rfc]
+      properties:
+        kind:
+          type: string
+          enum: [legal_entity, natural_person, cost_center]
+        name:
+          type: string
+        rfc:
+          type: string
+        parentPersonaId:
+          type: string
+    Persona:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        legalName:
+          type: string
+        rfc:
+          type: string
+        state:
+          type: string
+          description: PROSPECTO | EN_KYC | VERIFICADA | BLOQUEADA | EN_REMEDIACION
+        parentPersonaId:
+          type: string
+          nullable: true
+    IntakeLink:
+      type: object
+      properties:
+        token:
+          type: string
+        caseId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    Membership:
+      type: object
+      required: [userId, parentPersonaId, role]
+      properties:
+        userId:
+          type: string
+        parentPersonaId:
+          type: string
+        role:
+          type: string
+          enum: [ops, pld, cc_creator]
+    FaceSession:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, passed, failed, expired]
+        provider:
+          type: string
+          description: Adapter id only; not exposed as domain dependency

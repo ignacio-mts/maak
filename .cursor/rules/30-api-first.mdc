@@ -1,0 +1,12 @@
+---
+description: OpenAPI draft is stub; ola 1 does not implement Maak API
+globs:
+  - docs/openapi/**
+  - src/app/api/**
+---
+
+# API-first
+
+- `docs/openapi/maak-onboarding.v0.yaml` is a **draft stub** (cases, personas, intake-links, memberships, face-sessions).
+- Ola 1 `/api/login` & `/api/logout` are site-gate only — not the Maak domain API.
+- Do not invent Account/SPEI endpoints. Prefer updating the OpenAPI stub before inventing shapes in UI mocks when aligning to ola 2.
