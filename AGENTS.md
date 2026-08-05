@@ -12,7 +12,7 @@ Standard commands are in `package.json` (`dev`, `build`, `start`, `lint`); the u
 - Dev server: `npm run dev` (Turbopack) serves on `http://localhost:3000`. There is no automated test suite, so validate changes via `npm run lint`, `npm run build`, and manual UI checks.
 - App state is in-memory only: cases created through `/onboarding` reset on full page reload/server restart. Exercise flows within a single browser session.
 - Code is written in English; UI copy is in Spanish. Key routes are documented in `README.md`.
-- Site password gate (`iron-session`): requires `SITE_PASSWORD` and `SESSION_SECRET` (≥32 chars) in `.env.local` (see `.env.example`). Next.js 16 uses `src/proxy.ts` (not `middleware.ts`) to redirect unauthenticated traffic to `/login`. `/login` and `/api/login` are public; everything else needs a valid session cookie.
+- Frontend site gate (`iron-session` `/login`) — **not** Vercel Deployment Protection. Default password `loqueviene` (`SITE_PASSWORD` override). `SESSION_SECRET` ≥32 recommended for shared deploys (prototype fallback exists). Next.js 16 uses `src/proxy.ts` (not `middleware.ts`). Public: `/login`, `/api/login`, `/api/health`.
 - UI direction: Cursor-like tool UI with first-class light/dark themes. Docs under `docs/13_*` are domain/flow sources, not visual tokens. Do not reintroduce SPEI navy/purple/gold product theming.
 - Smoke-test: `/login` → `/onboarding` → create case → open `/cases/[id]` → simulate verification; also check theme toggle in light and dark.
 

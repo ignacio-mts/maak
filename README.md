@@ -7,17 +7,18 @@ Maak certifica **persona verificada** (expediente, KYC/KYB/PLD, casos de revisi�
 ## Ola 1 — Prototipo Vercel
 
 - UI **Cursor-like** con **light / dark** mode
-- Password gate (`iron-session`) — ver [`.env.example`](.env.example)
-- Deploy: [`docs/deploy/VERCEL_PROTOTYPE.md`](docs/deploy/VERCEL_PROTOTYPE.md)
+- Candado de frontend (`iron-session` en `/login`) — **no** Vercel Password Protection
+- Contraseña del prototipo: `loqueviene` (override con `SITE_PASSWORD`)
+- Deploy Hobby: [`docs/deploy/VERCEL_PROTOTYPE.md`](docs/deploy/VERCEL_PROTOTYPE.md) (import GitHub)
 - Datos mock en memoria (sin API persistente todavía)
 
 ```bash
 npm install
-cp .env.example .env.local   # set SITE_PASSWORD + SESSION_SECRET (≥32 chars)
+cp .env.example .env.local   # SITE_PASSWORD=loqueviene; SESSION_SECRET opcional en local
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000) → `/login`.
+Abrir [http://localhost:3000](http://localhost:3000) → `/login` → `loqueviene`.
 
 ## Rutas (código en inglés · UI en español)
 

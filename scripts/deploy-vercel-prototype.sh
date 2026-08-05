@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # One-shot deploy of the Maak ola-1 prototype to Vercel (Ignacio's account).
-# Prerequisites: `npx vercel login` (or VERCEL_TOKEN), then run from repo root.
+#
+# Access control is the Next.js iron-session gate (/login + SITE_PASSWORD),
+# NOT Vercel Deployment Protection / Password Protection (Pro plan).
+# Prefer docs/deploy/VERCEL_PROTOTYPE.md → Import GitHub if CLI auth is painful.
+#
+# Prerequisites: `npx vercel login` on your machine (or VERCEL_TOKEN), repo root.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -36,6 +41,8 @@ ensure_env() {
   echo "Set $name on production + preview"
 }
 
+# Default matches src/lib/session.ts prototype fallback.
+export SITE_PASSWORD="${SITE_PASSWORD:-loqueviene}"
 ensure_env SITE_PASSWORD
 if [[ -z "${SESSION_SECRET:-}" ]]; then
   SESSION_SECRET="$(openssl rand -base64 48 | tr -d '\n')"
@@ -45,7 +52,8 @@ fi
 ensure_env SESSION_SECRET
 
 echo "Deploying production…"
+echo "(App gate = /login with SITE_PASSWORD; do not enable Vercel Password Protection.)"
 URL="$(npx vercel --prod --yes "${TOKEN_ARGS[@]}")"
 echo ""
 echo "Prototype URL: $URL"
-echo "Open $URL/login and use SITE_PASSWORD."
+echo "Open $URL/login — password is SITE_PASSWORD (default: loqueviene)."

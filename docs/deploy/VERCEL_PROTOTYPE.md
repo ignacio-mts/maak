@@ -1,77 +1,47 @@
 # Deploy prototipo Maak a Vercel (Ola 1)
 
-## Requisitos
+## Candado = frontend (no Vercel Password Protection)
 
-- Cuenta Vercel de Ignacio
-- Repo `ignacio-mts/maak`
-- Variables de entorno:
-  - `SITE_PASSWORD` — contraseña del gate
-  - `SESSION_SECRET` — ≥32 caracteres (cookie iron-session)
+El acceso al prototipo es un **lock de app** con `iron-session`:
 
-## Opción A — Script (recomendado)
+- UI: `/login`
+- Proxy: `src/proxy.ts`
+- Env opcional: `SITE_PASSWORD` (default en código: `loqueviene`)
+- Env opcional: `SESSION_SECRET` (≥32; hay fallback de prototipo)
+
+**No uses** Vercel → Deployment Protection / Password Protection / Vercel Authentication. Eso es plan Pro y **no** es el diseño acordado. El Hobby plan alcanza: deploy público + candado en Next.js.
+
+## Opción recomendada — Import GitHub (sin CLI)
+
+1. Entrá a [vercel.com/new](https://vercel.com/new) con tu cuenta personal (Hobby).
+2. Importá `ignacio-mts/maak`.
+3. Root del proyecto = repo root. Framework: Next.js.
+4. Branch de producción: `main` (o `imieites/ola1-vercel-cursor-ds-9122` hasta merge).
+5. **Environment Variables** (opcionales si usás los defaults de prototipo):
+   - `SITE_PASSWORD` = `loqueviene`
+   - `SESSION_SECRET` = string ≥32 (recomendado en deploys compartidos)
+6. Deploy.
+7. **Settings → Deployment Protection:** dejalo **apagado** / Standard Protection off para Production si aparece. El gate es `/login`.
+
+Smoke: abrir URL → redirige a `/login` → contraseña `loqueviene` → BO con theme toggle.
+
+## Opción B — CLI (solo si ya estás logueado en tu máquina)
 
 ```bash
-npx vercel login
-export SITE_PASSWORD='…'          # compartir al equipo por canal seguro
+npx vercel login          # en tu laptop, no requiere plan Pro
+export SITE_PASSWORD=loqueviene
 export SESSION_SECRET="$(openssl rand -base64 48)"
 ./scripts/deploy-vercel-prototype.sh
 ```
 
-El script linkea el proyecto, sube env vars (production + preview) y hace `vercel --prod`.
+El cloud agent **no** puede completar `vercel login` device OAuth de forma fiable; preferí el import GitHub arriba.
 
-## Opción B — CLI manual
+## Opción C — GitHub Actions
 
-```bash
-npx vercel login
-npx vercel link   # proyecto personal, root del repo
-npx vercel env add SITE_PASSWORD
-npx vercel env add SESSION_SECRET
-npx vercel --prod
-```
+`.github/workflows/deploy-vercel.yml` — necesita `VERCEL_TOKEN` + org/project ids (token de cuenta, Hobby OK). El gate sigue siendo `SITE_PASSWORD`, no Deployment Protection.
 
-## Opción C — Git integration
+## Compartir con el equipo
 
-1. Vercel → Add Project → import `ignacio-mts/maak`
-2. Production branch: `main` (o la branch de ola 1 hasta merge)
-3. Set env vars for Production + Preview
-4. Deploy
-
-## Opción D — GitHub Actions
-
-Workflow: `.github/workflows/deploy-vercel.yml` (`workflow_dispatch`).
-
-Secrets de repo (admin):
-
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-
-Env del gate: preferir Vercel Project → Environment Variables (`SITE_PASSWORD`, `SESSION_SECRET`).
-
-## Cloud agent
-
-Este entorno **no** tiene credenciales Vercel (MCP `needsAuth`; sin `VERCEL_TOKEN`).
-
-Para desbloquear desde el agent:
-
-1. En el agent: `npx vercel login` → abre el device URL que imprime
-2. En tu browser (cuenta Ignacio): autorizar el device code
-3. En el agent:
-
-```bash
-export SITE_PASSWORD='…'
-export SESSION_SECRET="$(openssl rand -base64 48)"
-./scripts/deploy-vercel-prototype.sh
-```
-
-O pegá un `VERCEL_TOKEN` (Account → Tokens) en el entorno del agent y corré el mismo script.
-
-## Smoke
-
-1. Abrir URL → `/login`
-2. Ingresar `SITE_PASSWORD`
-3. Verificar banner “Prototipo”, theme toggle claro/oscuro, `/cases`, `/onboarding`, `/client/cc`, `/intake/[token]`
-
-## Nota producto
-
-El password gate **no** es RBAC. Es candado de sitio del prototipo hasta IdP real (ola 2).
+- URL de Vercel + contraseña `loqueviene`
+- Banner “Prototipo” visible en la shell
+- No es RBAC; se retira cuando haya IdP (ola 2)
