@@ -29,7 +29,7 @@ export default function CaseDetailPage() {
   if (!c) {
     return (
       <div className="card">
-        <h1 className="m-0 font-[family-name:var(--font-ui)] text-xl font-bold">Caso no encontrado</h1>
+        <h1 className="m-0 text-xl font-bold">Caso no encontrado</h1>
         <Link href="/cases" className="mt-3 inline-block text-[13px] font-bold text-[var(--primary)]">
           Volver a la cola
         </Link>
@@ -46,7 +46,7 @@ export default function CaseDetailPage() {
 
       <header className="card mb-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">{c.name}</h1>
+          <h1 className="m-0 text-[22px] font-bold tracking-tight">{c.name}</h1>
           <div className="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1.5 text-[13px] text-[var(--muted)]">
             <span>{c.id}</span>
             <span>RFC <b className="font-semibold text-[var(--ink)]">{c.rfc}</b></span>
@@ -89,7 +89,7 @@ export default function CaseDetailPage() {
       {(c.verified || c.status === "verified") && (
         <section className="card mb-4 border-[var(--ok-line)] bg-gradient-to-br from-[var(--ok-bg)] to-[var(--primary-soft)] text-center">
           <div className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{c.name}</div>
-          <div className="my-2 font-[family-name:var(--font-ui)] text-[22px] font-extrabold text-[var(--ok)]">
+          <div className="my-2 text-[22px] font-extrabold text-[var(--ok)]">
             Persona verificada
           </div>
           <code className="mt-2 inline-block rounded-md border border-[var(--line)] bg-[var(--surface)] px-2 py-2 font-mono text-xs text-[var(--ink-2)]">

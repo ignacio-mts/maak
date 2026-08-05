@@ -17,7 +17,7 @@ export default function IntakePage() {
   if (!c) {
     return (
       <div className="mx-auto max-w-[520px] px-5 py-16 text-center">
-        <h1 className="font-[family-name:var(--font-ui)] text-xl font-bold">Enlace no válido o vencido</h1>
+        <h1 className="text-xl font-bold">Enlace no válido o vencido</h1>
         <p className="mt-2 text-[13px] text-[var(--muted)]">Pedí un nuevo enlace al equipo de STP.</p>
       </div>
     );
@@ -31,7 +31,7 @@ export default function IntakePage() {
         <ThemeToggle />
       </div>
       <div className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Cliente</div>
-      <h1 className="m-0 font-[family-name:var(--font-ui)] text-[24px] font-extrabold tracking-tight">
+      <h1 className="m-0 text-[24px] font-extrabold tracking-tight">
         Documentos pendientes
       </h1>
       <p className="mt-1 text-[13px] text-[var(--muted)]">
