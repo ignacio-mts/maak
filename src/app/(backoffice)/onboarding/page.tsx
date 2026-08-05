@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { ProcessStepper } from "@/components/ProcessStepper";
 import { useCases } from "@/lib/cases-context";
 import { personKindLabel } from "@/lib/labels";
@@ -21,7 +21,6 @@ import type { OnboardingDraft, PersonKind, ProcessStep } from "@/lib/types";
 type UploadPhase = "idle" | "recognizing" | "done";
 type FieldKey = "name" | "rfc" | "email";
 type DirtyMap = Record<FieldKey, boolean>;
-type Suggestions = Partial<Record<FieldKey, string>>;
 
 function previewSteps(kind: PersonKind): ProcessStep[] {
   if (kind === "cost_center") {
@@ -81,12 +80,12 @@ function OnboardingInner() {
   const [email, setEmail] = useState("");
   const [parentCaseId, setParentCaseId] = useState("");
   const [dirty, setDirty] = useState<DirtyMap>({ name: false, rfc: false, email: false });
-  const [suggestions, setSuggestions] = useState<Suggestions>({});
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const formRef = useRef({ name, rfc, email, dirty });
+  formRef.current = { name, rfc, email, dirty };
 
   const meta = kind ? templates[kind] : null;
   const recognizing = uploadPhase === "recognizing";
-  const fieldsLocked = recognizing;
   const checklist = useMemo(
     () => (kind ? buildChecklist(kind, docs) : []),
     [kind, docs],
@@ -100,31 +99,34 @@ function OnboardingInner() {
     Boolean(name.trim() && email.trim()) &&
     (kind === "cost_center" ? Boolean(parentCaseId) : Boolean(rfc.trim()));
 
-  function markDirty(key: FieldKey, value: string) {
+  const llmRfc =
+    extracted?.rfc && extracted.rfc !== "— (hereda del padre)" ? extracted.rfc : "";
+  const llmValues = {
+    name: extracted?.name?.trim() || "",
+    rfc: llmRfc.trim(),
+    email: extracted?.email?.trim() || "",
+  };
+  const discrepancies = {
+    name: fieldDiscrepancy(name, llmValues.name),
+    rfc: fieldDiscrepancy(rfc, llmValues.rfc),
+    email: fieldDiscrepancy(email, llmValues.email),
+  };
+  const discrepancyCount = Object.values(discrepancies).filter(Boolean).length;
+
+  function setField(key: FieldKey, value: string) {
     setDirty((d) => ({ ...d, [key]: true }));
     if (key === "name") setName(value);
     if (key === "rfc") setRfc(value.toUpperCase());
     if (key === "email") setEmail(value);
-    setSuggestions((s) => {
-      if (!s[key]) return s;
-      const next = { ...s };
-      delete next[key];
-      return next;
-    });
   }
 
-  function applySuggestion(key: FieldKey) {
-    const value = suggestions[key];
+  function applyLlmValue(key: FieldKey) {
+    const value = llmValues[key];
     if (!value) return;
     if (key === "name") setName(value);
     if (key === "rfc") setRfc(value);
     if (key === "email") setEmail(value);
-    setDirty((d) => ({ ...d, [key]: true }));
-    setSuggestions((s) => {
-      const next = { ...s };
-      delete next[key];
-      return next;
-    });
+    setDirty((d) => ({ ...d, [key]: false }));
   }
 
   async function simulateUploadAndRecognize() {
@@ -133,7 +135,6 @@ function OnboardingInner() {
     const pack = mockPackageForKind(kind);
     setDocs(pack);
     setUploadPhase("recognizing");
-    setSuggestions({});
 
     await wait(400);
     setDocs((prev) => prev.map((d) => ({ ...d, status: "reading" })));
@@ -148,15 +149,16 @@ function OnboardingInner() {
     );
     setExtracted(fields);
 
-    const { next, suggestions: pending } = mergeExtractedIntoForm(
-      { name, rfc, email },
-      dirty,
+    // Snapshot after await so operator edits during recognition are respected.
+    const latest = formRef.current;
+    const { next } = mergeExtractedIntoForm(
+      { name: latest.name, rfc: latest.rfc, email: latest.email },
+      latest.dirty,
       fields,
     );
     setName(next.name);
     setRfc(next.rfc);
     setEmail(next.email);
-    setSuggestions(pending);
     setUploadPhase("done");
   }
 
@@ -182,8 +184,8 @@ function OnboardingInner() {
       <header className="card mb-4">
         <h1 className="m-0 text-[22px] font-bold tracking-tight">Alta asistida</h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
-          Una sola pantalla de expediente: carga (PDF/ZIP) + checklist del template + campos. Durante
-          el reconocimiento los campos se bloquean para no pelear con el agente.
+          Una sola pantalla de expediente: carga (PDF/ZIP) + checklist del template + campos. Podés
+          escribir en cualquier momento; si el LLM discrepa, avisamos y podés adoptar su valor.
         </p>
       </header>
 
@@ -226,7 +228,6 @@ function OnboardingInner() {
                   setEmail("");
                   setParentCaseId("");
                   setDirty({ name: false, rfc: false, email: false });
-                  setSuggestions({});
                   setStep(2);
                 }}
                 className="card mb-0 text-left hover:border-[var(--primary)]"
@@ -337,21 +338,23 @@ function OnboardingInner() {
 
               {recognizing ? (
                 <div
-                  className="mb-3 rounded-[var(--radius)] border border-[var(--warn-line)] bg-[var(--warn-bg)] px-3 py-2.5 text-[12.5px] text-[var(--warn)]"
-                  role="status"
-                >
-                  El agente está relacionando documentos y campos. Los inputs quedan bloqueados unos
-                  segundos para evitar pisar lo que estás tipeando.
-                </div>
-              ) : null}
-
-              {Object.keys(suggestions).length > 0 ? (
-                <div
                   className="mb-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[12.5px] text-[var(--ink-2)]"
                   role="status"
                 >
-                  Hay valores del documento distintos a lo que editaste. No se sobrescribieron:
-                  aplicá solo si querés.
+                  Reconocimiento en curso… podés seguir editando. Si al terminar hay diferencias con
+                  el LLM, te avisamos por campo.
+                </div>
+              ) : null}
+
+              {discrepancyCount > 0 ? (
+                <div
+                  className="mb-3 rounded-[var(--radius)] border border-[var(--warn-line)] bg-[var(--warn-bg)] px-3 py-2.5 text-[12.5px] text-[var(--warn)]"
+                  role="status"
+                >
+                  {discrepancyCount === 1
+                    ? "Hay 1 campo con valor distinto al del LLM."
+                    : `Hay ${discrepancyCount} campos con valores distintos a los del LLM.`}{" "}
+                  No se sobrescribieron; usá el botón de cada campo si querés el valor del modelo.
                 </div>
               ) : null}
 
@@ -396,28 +399,25 @@ function OnboardingInner() {
                             : "Razón social"
                       }
                       value={name}
-                      locked={fieldsLocked}
-                      suggestion={suggestions.name}
-                      onChange={(v) => markDirty("name", v)}
-                      onApplySuggestion={() => applySuggestion("name")}
+                      llmValue={discrepancies.name}
+                      onChange={(v) => setField("name", v)}
+                      onApplyLlm={() => applyLlmValue("name")}
                     />
                     <Field
                       label="RFC"
                       value={rfc}
-                      locked={fieldsLocked}
-                      suggestion={suggestions.rfc}
+                      llmValue={discrepancies.rfc}
                       placeholder={kind === "cost_center" ? "Opcional / hereda del padre" : undefined}
-                      onChange={(v) => markDirty("rfc", v)}
-                      onApplySuggestion={() => applySuggestion("rfc")}
+                      onChange={(v) => setField("rfc", v)}
+                      onApplyLlm={() => applyLlmValue("rfc")}
                     />
                     <Field
                       label="Correo de contacto"
                       value={email}
-                      locked={fieldsLocked}
-                      suggestion={suggestions.email}
+                      llmValue={discrepancies.email}
                       type="email"
-                      onChange={(v) => markDirty("email", v)}
-                      onApplySuggestion={() => applySuggestion("email")}
+                      onChange={(v) => setField("email", v)}
+                      onApplyLlm={() => applyLlmValue("email")}
                     />
                     {extracted?.representante ? (
                       <label className="grid gap-1 text-[13px]">
@@ -436,9 +436,8 @@ function OnboardingInner() {
                         <span className="font-semibold text-[var(--ink-2)]">Persona moral padre</span>
                         <select
                           value={parentCaseId}
-                          disabled={fieldsLocked}
                           onChange={(e) => setParentCaseId(e.target.value)}
-                          className="rounded-lg border border-[var(--line)] px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-lg border border-[var(--line)] px-3 py-2"
                         >
                           <option value="">Seleccionar…</option>
                           {parents.map((p) => (
@@ -488,11 +487,11 @@ function OnboardingInner() {
             <h2>Recorrido {personKindLabel[kind]}</h2>
             <ProcessStepper steps={previewSteps(kind)} />
             <div className="mt-4 space-y-2 text-[12px] text-[var(--muted)]">
-              <p className="m-0 font-semibold text-[var(--ink-2)]">Conflicto agente ↔ operador</p>
+              <p className="m-0 font-semibold text-[var(--ink-2)]">Conflicto LLM ↔ operador</p>
               <ul className="m-0 list-disc space-y-1 pl-4">
-                <li>Mientras reconoce: campos bloqueados.</li>
-                <li>Si ya editaste un campo: no se pisa; aparece «Usar valor del documento».</li>
-                <li>Si el campo estaba vacío: se completa solo.</li>
+                <li>Los campos siempre se pueden editar.</li>
+                <li>Vacío al llegar el LLM → se completa solo.</li>
+                <li>Si ya escribiste y el LLM discrepa → warning + «Usar valor del LLM».</li>
               </ul>
             </div>
           </aside>
@@ -537,53 +536,72 @@ function OnboardingInner() {
   );
 }
 
+function normalizeField(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function fieldDiscrepancy(current: string, llm: string): string | undefined {
+  if (!llm) return undefined;
+  if (!current.trim()) return undefined;
+  if (normalizeField(current) === normalizeField(llm)) return undefined;
+  return llm;
+}
+
 function Field({
   label,
   value,
-  locked,
-  suggestion,
+  llmValue,
   onChange,
-  onApplySuggestion,
+  onApplyLlm,
   type = "text",
   placeholder,
 }: {
   label: string;
   value: string;
-  locked: boolean;
-  suggestion?: string;
+  llmValue?: string;
   onChange: (v: string) => void;
-  onApplySuggestion: () => void;
+  onApplyLlm: () => void;
   type?: string;
   placeholder?: string;
 }) {
+  const hasConflict = Boolean(llmValue);
   return (
-    <label className="grid gap-1 text-[13px]">
-      <span className="flex items-center justify-between gap-2 font-semibold text-[var(--ink-2)]">
-        {label}
-        {locked ? (
+    <div className="grid gap-1 text-[13px]">
+      <div className="flex items-center justify-between gap-2 font-semibold text-[var(--ink-2)]">
+        <span>{label}</span>
+        {hasConflict ? (
           <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--warn)]">
-            Bloqueado
+            Discrepancia
           </span>
         ) : null}
-      </span>
+      </div>
       <input
         type={type}
         value={value}
         placeholder={placeholder}
-        disabled={locked}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-[var(--line)] px-3 py-2 disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:opacity-70"
+        aria-invalid={hasConflict || undefined}
+        className={`rounded-lg border px-3 py-2 ${
+          hasConflict
+            ? "border-[var(--warn)] bg-[var(--warn-bg)]/40"
+            : "border-[var(--line)] bg-[var(--surface)]"
+        }`}
       />
-      {suggestion ? (
-        <button
-          type="button"
-          onClick={onApplySuggestion}
-          className="justify-self-start text-left text-[11px] font-semibold text-[var(--primary)] hover:underline"
-        >
-          Usar valor del documento: {suggestion}
-        </button>
+      {hasConflict ? (
+        <div className="rounded-md border border-[var(--warn-line)] bg-[var(--warn-bg)] px-2.5 py-2">
+          <p className="m-0 text-[11px] text-[var(--warn)]">
+            El LLM propone: <span className="font-semibold">{llmValue}</span>
+          </p>
+          <button
+            type="button"
+            onClick={onApplyLlm}
+            className="mt-1.5 rounded-md border border-[var(--warn)] bg-[var(--surface)] px-2 py-1 text-[11px] font-bold text-[var(--warn)] hover:bg-[var(--warn-bg)]"
+          >
+            Usar valor del LLM
+          </button>
+        </div>
       ) : null}
-    </label>
+    </div>
   );
 }
 
