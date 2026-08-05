@@ -1,140 +1,116 @@
 openapi: 3.0.3
 info:
   title: Maak Onboarding API
-  version: 0.0.0
+  version: 0.1.0-draft
   description: |
-    DRAFT stub only — not implemented in ola 1 (Vercel mock).
-    Paths sketch ola 2 Maak API (Fargate). No Account/SPEI/CLABE resources.
+    DRAFT OpenAPI for Maak ola 2 scaffolding. Not a production contract.
+    Paths sketch Fargate API surfaces; implementations may be stubs.
 servers:
-  - url: https://api.maak.example/v0
-    description: Placeholder
+  - url: https://api.maak.example
+    description: Placeholder (ola 2+)
 tags:
-  - name: cases
-  - name: personas
-  - name: intake-links
-  - name: memberships
-  - name: face-sessions
+  - name: Personas
+  - name: Cases
+  - name: IntakeLinks
+  - name: Memberships
+  - name: Bindings
+  - name: Adapter
 paths:
-  /cases:
-    get:
-      tags: [cases]
-      summary: List cases (queue)
-      parameters:
-        - in: query
-          name: kind
-          schema:
-            type: string
-            enum: [legal_entity, natural_person, cost_center]
-        - in: query
-          name: status
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Case list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Case"
+  /v1/cases:openFromTemplate:
     post:
-      tags: [cases]
-      summary: Create onboarding case
+      tags: [Cases]
+      summary: Open a compliance case from a case template
+      operationId: openCaseFromTemplate
+      security:
+        - oauth2: [cases:hitl]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateCaseRequest"
+              $ref: "#/components/schemas/OpenCaseFromTemplateRequest"
       responses:
         "201":
-          description: Created
+          description: Case opened
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Case"
-  /cases/{caseId}:
-    get:
-      tags: [cases]
-      summary: Get case detail
+                $ref: "#/components/schemas/ComplianceCase"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /v1/cases/{id}/evaluateAll:
+    post:
+      tags: [Cases]
+      summary: Evaluate all linked rules for a case
+      operationId: evaluateAllCaseRules
+      security:
+        - oauth2: [cases:hitl, rules:publish]
       parameters:
         - $ref: "#/components/parameters/caseId"
       responses:
         "200":
-          description: Case
+          description: Evaluation summary
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Case"
-  /personas:
-    get:
-      tags: [personas]
-      summary: List personas (verified directory filters TBD)
-      responses:
-        "200":
-          description: Persona list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Persona"
-  /personas/{personaId}:
-    get:
-      tags: [personas]
-      summary: Get persona
-      parameters:
-        - $ref: "#/components/parameters/personaId"
-      responses:
-        "200":
-          description: Persona
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Persona"
-  /intake-links:
+                $ref: "#/components/schemas/EvaluateAllResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/cases/{id}/returnForFix:
     post:
-      tags: [intake-links]
-      summary: Create write-only intake link for a case
+      tags: [Cases]
+      summary: Return case to client for gap remediation
+      operationId: returnCaseForFix
+      security:
+        - oauth2: [cases:hitl, cases:pld]
+      parameters:
+        - $ref: "#/components/parameters/caseId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [caseId]
-              properties:
-                caseId:
-                  type: string
-                expiresAt:
-                  type: string
-                  format: date-time
+              $ref: "#/components/schemas/ReturnForFixRequest"
+      responses:
+        "200":
+          description: Case returned for fix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplianceCase"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/intake-links:
+    post:
+      tags: [IntakeLinks]
+      summary: Create a write-only intake link for a case
+      operationId: createIntakeLink
+      security:
+        - oauth2: [cases:hitl]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateIntakeLinkRequest"
       responses:
         "201":
-          description: Created
+          description: Intake link created
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/IntakeLink"
-  /intake-links/{token}:
-    get:
-      tags: [intake-links]
-      summary: Resolve intake link (client)
-      parameters:
-        - $ref: "#/components/parameters/token"
-      responses:
-        "200":
-          description: Intake context
+
+  /v1/intake-links/{token}/submit:
     post:
-      tags: [intake-links]
-      summary: Submit gap payload (write-only)
+      tags: [IntakeLinks]
+      summary: Submit gap payload via intake token (client, write-only)
+      operationId: submitIntakeLink
       parameters:
         - $ref: "#/components/parameters/token"
       requestBody:
@@ -147,13 +123,83 @@ paths:
       responses:
         "202":
           description: Accepted
-  /memberships:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                  caseId:
+                    type: string
+        "410":
+          description: Token expired or consumed
+
+  /v1/personas/{id}:
     get:
-      tags: [memberships]
-      summary: List user↔parentPersona memberships
+      tags: [Personas]
+      summary: Get persona by id
+      operationId: getPersona
+      security:
+        - oauth2: [persona:read]
+      parameters:
+        - $ref: "#/components/parameters/personaId"
       responses:
         "200":
-          description: Memberships
+          description: Persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /v1/personas/{id}/emitPersonaOK:
+    post:
+      tags: [Personas]
+      summary: Emit PersonaOK (verified) event for downstream adapters
+      operationId: emitPersonaOK
+      security:
+        - oauth2: [cases:pld]
+      parameters:
+        - $ref: "#/components/parameters/personaId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caseId:
+                  type: string
+                correlationId:
+                  type: string
+      responses:
+        "202":
+          description: PersonaOK accepted for outbox
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonaOK"
+
+  /v1/memberships:
+    get:
+      tags: [Memberships]
+      summary: List memberships
+      operationId: listMemberships
+      security:
+        - oauth2: [persona:read]
+      parameters:
+        - in: query
+          name: parentPersonaId
+          schema:
+            type: string
+        - in: query
+          name: userId
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Membership list
           content:
             application/json:
               schema:
@@ -164,8 +210,11 @@ paths:
                     items:
                       $ref: "#/components/schemas/Membership"
     post:
-      tags: [memberships]
+      tags: [Memberships]
       summary: Create membership
+      operationId: createMembership
+      security:
+        - oauth2: [cc:create]
       requestBody:
         required: true
         content:
@@ -175,25 +224,24 @@ paths:
       responses:
         "201":
           description: Created
-  /face-sessions:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Membership"
+
+  /v1/bindings/face/sessions:
     post:
-      tags: [face-sessions]
-      summary: Create FaceBinding session (port; vendor via adapter)
+      tags: [Bindings]
+      summary: Create FaceBinding liveness session
+      operationId: createFaceSession
+      security:
+        - oauth2: [cases:hitl]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [caseId, purpose]
-              properties:
-                caseId:
-                  type: string
-                personaId:
-                  type: string
-                purpose:
-                  type: string
-                  enum: [onboarding_liveness, remediation]
+              $ref: "#/components/schemas/FaceSessionRequest"
       responses:
         "201":
           description: Session created
@@ -201,63 +249,152 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FaceSession"
-  /face-sessions/{sessionId}:
-    get:
-      tags: [face-sessions]
-      summary: Get face session status
-      parameters:
-        - $ref: "#/components/parameters/sessionId"
+
+  /v1/bindings/face/results:
+    post:
+      tags: [Bindings]
+      summary: Complete FaceBinding session / ingest normalized result
+      operationId: completeFaceSession
+      security:
+        - oauth2: [cases:hitl]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sessionId]
+              properties:
+                sessionId:
+                  type: string
+                payload:
+                  description: Provider-specific completion payload (opaque to domain)
+                  additionalProperties: true
       responses:
         "200":
-          description: Session
+          description: Normalized liveness result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FaceSession"
+                $ref: "#/components/schemas/LivenessResult"
+
+  /v1/adapter/sicli/handoff:
+    post:
+      tags: [Adapter]
+      summary: Hand PersonaOK package to Adapter SICLI
+      operationId: sicliHandoff
+      security:
+        - oauth2: [cases:pld]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonaOK"
+      responses:
+        "202":
+          description: Handoff acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SicliHandoffAck"
+
 components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: Machine-to-machine client credentials (draft scopes)
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.maak.example/oauth/token
+          scopes:
+            cases:hitl: HITL case operations (open, evaluate, intake links, face binding)
+            cases:pld: PLD / compliance decisions (return for fix, PersonaOK, SICLI handoff)
+            cc:create: Create cost-center / membership relationships
+            rules:publish: Publish or trigger rule evaluation
+            persona:read: Read persona and membership directory
+
   parameters:
     caseId:
       in: path
-      name: caseId
+      name: id
       required: true
       schema:
         type: string
+      description: Compliance case id
     personaId:
       in: path
-      name: personaId
+      name: id
       required: true
       schema:
         type: string
+      description: Persona id
     token:
       in: path
       name: token
       required: true
       schema:
         type: string
-    sessionId:
-      in: path
-      name: sessionId
-      required: true
-      schema:
-        type: string
+      description: Intake link token
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
-    Case:
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    OpenCaseFromTemplateRequest:
+      type: object
+      required: [templateId, personaId]
+      properties:
+        templateId:
+          type: string
+        personaId:
+          type: string
+        correlationId:
+          type: string
+
+    ComplianceCase:
       type: object
       properties:
         id:
           type: string
         personaId:
           type: string
-        kind:
+        templateId:
           type: string
-          enum: [legal_entity, natural_person, cost_center]
         status:
           type: string
+          description: Draft lifecycle status (e.g. OPEN, RETURNED, READY, ACTIVATING)
         gaps:
           type: array
           items:
-            $ref: "#/components/schemas/Gap"
-    Gap:
+            $ref: "#/components/schemas/CaseGap"
+
+    CaseGap:
       type: object
       properties:
         id:
@@ -267,36 +404,48 @@ components:
         ownership:
           type: string
           enum: [client, reviewer, engine, compliance]
-    CreateCaseRequest:
-      type: object
-      required: [kind, name, rfc]
-      properties:
-        kind:
-          type: string
-          enum: [legal_entity, natural_person, cost_center]
-        name:
-          type: string
-        rfc:
-          type: string
-        parentPersonaId:
-          type: string
-    Persona:
+
+    EvaluateAllResponse:
       type: object
       properties:
-        id:
+        caseId:
           type: string
-        kind:
+        passed:
+          type: boolean
+        evaluations:
+          type: array
+          items:
+            type: object
+            properties:
+              ruleId:
+                type: string
+              result:
+                type: string
+                enum: [PASS, FAIL, SKIP, ERROR]
+              message:
+                type: string
+
+    ReturnForFixRequest:
+      type: object
+      required: [gapIds]
+      properties:
+        gapIds:
+          type: array
+          items:
+            type: string
+        note:
           type: string
-        legalName:
+
+    CreateIntakeLinkRequest:
+      type: object
+      required: [caseId]
+      properties:
+        caseId:
           type: string
-        rfc:
+        expiresAt:
           type: string
-        state:
-          type: string
-          description: PROSPECTO | EN_KYC | VERIFICADA | BLOQUEADA | EN_REMEDIACION
-        parentPersonaId:
-          type: string
-          nullable: true
+          format: date-time
+
     IntakeLink:
       type: object
       properties:
@@ -307,10 +456,53 @@ components:
         expiresAt:
           type: string
           format: date-time
+        url:
+          type: string
+          format: uri
+
+    Persona:
+      type: object
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [legal_entity, natural_person, cost_center]
+        legalName:
+          type: string
+        rfc:
+          type: string
+        state:
+          type: string
+          description: PROSPECTO | EN_KYC | VERIFICADA | BLOQUEADA | EN_REMEDIACION
+        parentPersonaId:
+          type: string
+          nullable: true
+
+    PersonaOK:
+      type: object
+      required: [personaId]
+      properties:
+        personaId:
+          type: string
+        caseId:
+          type: string
+        correlationId:
+          type: string
+        emittedAt:
+          type: string
+          format: date-time
+        snapshot:
+          type: object
+          additionalProperties: true
+          description: Opaque alta package for Adapter SICLI
+
     Membership:
       type: object
       required: [userId, parentPersonaId, role]
       properties:
+        id:
+          type: string
         userId:
           type: string
         parentPersonaId:
@@ -318,14 +510,52 @@ components:
         role:
           type: string
           enum: [ops, pld, cc_creator]
+
+    FaceSessionRequest:
+      type: object
+      required: [personaId, caseId]
+      properties:
+        personaId:
+          type: string
+        caseId:
+          type: string
+        returnUrl:
+          type: string
+          format: uri
+
     FaceSession:
       type: object
       properties:
-        id:
+        sessionId:
           type: string
-        status:
-          type: string
-          enum: [pending, passed, failed, expired]
         provider:
           type: string
-          description: Adapter id only; not exposed as domain dependency
+          description: Adapter id only; not a domain dependency
+        clientPayload:
+          type: object
+          additionalProperties: true
+
+    LivenessResult:
+      type: object
+      required: [status, evidenceIds]
+      properties:
+        status:
+          type: string
+          enum: [PASS, FAIL, ERROR, SKIP]
+        score:
+          type: number
+        vendorRawRef:
+          type: string
+        evidenceIds:
+          type: array
+          items:
+            type: string
+
+    SicliHandoffAck:
+      type: object
+      required: [ack, handoffId]
+      properties:
+        ack:
+          type: boolean
+        handoffId:
+          type: string
