@@ -153,6 +153,39 @@ export function formatBytes(n: number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Prototype: fake ZIP unpack without a real file dialog. */
+export function mockPackageForKind(kind: PersonKind): IngestedDoc[] {
+  const packs: Record<PersonKind, { name: string; hint: IngestedDoc["kindHint"] }[]> = {
+    legal_entity: [
+      { name: "Acta_constitutiva.pdf", hint: "acta" },
+      { name: "CSF_CNP850214XX1.pdf", hint: "csf" },
+      { name: "Poder_notarial_RL.pdf", hint: "poder" },
+      { name: "INE_representante.pdf", hint: "ine" },
+    ],
+    natural_person: [
+      { name: "INE_frente.jpg", hint: "ine" },
+      { name: "INE_reverso.jpg", hint: "ine" },
+      { name: "CSF.pdf", hint: "csf" },
+      { name: "Comprobante_domicilio.pdf", hint: "domicilio" },
+    ],
+    cost_center: [
+      { name: "Datos_CC_Noreste.pdf", hint: "otros" },
+      { name: "Autorizacion_padre.pdf", hint: "autorizacion" },
+      { name: "GE_grupo.pdf", hint: "ge" },
+    ],
+  };
+
+  return packs[kind].map((item, i) => ({
+    id: `mock-${i + 1}`,
+    name: item.name,
+    size: 240_000 + i * 37_000,
+    source: "zip" as const,
+    zipName: "paquete_cliente.zip",
+    kindHint: item.hint,
+    status: "queued" as const,
+  }));
+}
+
 export const kindHintLabel: Record<IngestedDoc["kindHint"], string> = {
   acta: "Acta",
   csf: "CSF",

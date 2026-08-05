@@ -2,22 +2,15 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Suspense,
-  useMemo,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { Suspense, useMemo, useState } from "react";
 import { ProcessStepper } from "@/components/ProcessStepper";
 import { useCases } from "@/lib/cases-context";
 import { personKindLabel } from "@/lib/labels";
 import {
-  expandUploads,
   formatBytes,
   kindHintLabel,
   mockExtract,
+  mockPackageForKind,
   type ExtractedFields,
   type IngestedDoc,
 } from "@/lib/onboarding-ingest";
@@ -27,29 +20,43 @@ const kinds: {
   id: PersonKind;
   title: string;
   blurb: string;
-  expected: string[];
+  expected: { id: string; label: string }[];
 }[] = [
   {
     id: "legal_entity",
     title: "Persona moral",
     blurb: "Subí el paquete documental; Maak extrae RFC y razón social para que solo verifiques.",
-    expected: ["Acta constitutiva", "CSF", "Poder del RL", "INE del RL"],
+    expected: [
+      { id: "acta", label: "Acta constitutiva" },
+      { id: "csf", label: "CSF" },
+      { id: "poder", label: "Poder del RL" },
+      { id: "ine", label: "INE del RL" },
+    ],
   },
   {
     id: "natural_person",
     title: "Persona física",
     blurb: "INE + CSF (y domicilio si aplica). La extracción prellena identidad y RFC.",
-    expected: ["INE frente/reverso", "CSF", "Comprobante de domicilio (opc.)"],
+    expected: [
+      { id: "ine", label: "INE frente/reverso" },
+      { id: "csf", label: "CSF" },
+      { id: "dom", label: "Comprobante de domicilio (opc.)" },
+    ],
   },
   {
     id: "cost_center",
     title: "Centro de costo",
     blurb: "Documentos del CC; el operador confirma el padre autorizado y los datos extraídos.",
-    expected: ["Datos del CC", "Autorización del padre", "GE (si aplica)"],
+    expected: [
+      { id: "datos", label: "Datos del CC" },
+      { id: "auth", label: "Autorización del padre" },
+      { id: "ge", label: "GE (si aplica)" },
+    ],
   },
 ];
 
-type EvalPhase = "idle" | "unpacking" | "classifying" | "extracting" | "done";
+type DocsScreen = "list" | "upload";
+type UploadPhase = "idle" | "recognizing" | "done";
 
 function previewSteps(kind: PersonKind): ProcessStep[] {
   if (kind === "cost_center") {
@@ -79,6 +86,10 @@ function previewSteps(kind: PersonKind): ProcessStep[] {
   ];
 }
 
+function wait(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 function OnboardingInner() {
   const router = useRouter();
   const search = useSearchParams();
@@ -98,76 +109,56 @@ function OnboardingInner() {
   const [kind, setKind] = useState<PersonKind | null>(
     preset && kinds.some((k) => k.id === preset) ? preset : null,
   );
+  const [docsScreen, setDocsScreen] = useState<DocsScreen>("list");
+  const [focusDoc, setFocusDoc] = useState<string | null>(null);
+  const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
   const [docs, setDocs] = useState<IngestedDoc[]>([]);
-  const [evalPhase, setEvalPhase] = useState<EvalPhase>("idle");
   const [extracted, setExtracted] = useState<ExtractedFields | null>(null);
   const [name, setName] = useState("");
   const [rfc, setRfc] = useState("");
   const [email, setEmail] = useState("");
   const [parentCaseId, setParentCaseId] = useState("");
-  const [dragOver, setDragOver] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const meta = kinds.find((k) => k.id === kind);
-  const evaluating = evalPhase !== "idle" && evalPhase !== "done";
+  const recognizing = uploadPhase === "recognizing";
   const canVerify =
-    evalPhase === "done" &&
+    uploadPhase === "done" &&
     docs.length > 0 &&
     Boolean(name.trim() && email.trim()) &&
     (kind === "cost_center" ? Boolean(parentCaseId) : Boolean(rfc.trim()));
 
-  async function ingestFiles(fileList: FileList | File[]) {
-    if (!kind) return;
-    setError(null);
-    setBusy(true);
-    setEvalPhase("unpacking");
-    setExtracted(null);
-    try {
-      const expanded = await expandUploads(fileList);
-      if (!expanded.length) {
-        setError("No se encontraron archivos útiles (¿ZIP vacío o solo carpetas?).");
-        setEvalPhase("idle");
-        setDocs([]);
-        return;
-      }
-      setDocs(expanded.map((d) => ({ ...d, status: "queued" })));
-      setEvalPhase("classifying");
-      await wait(450);
-      setDocs((prev) => prev.map((d) => ({ ...d, status: "reading" })));
-      setEvalPhase("extracting");
-      await wait(700);
-      const fields = mockExtract(kind, expanded);
-      setDocs((prev) =>
-        prev.map((d) => ({
-          ...d,
-          status: d.kindHint === "otros" ? "low_confidence" : "extracted",
-        })),
-      );
-      setExtracted(fields);
-      setName(fields.name);
-      setRfc(fields.rfc === "— (hereda del padre)" ? "" : fields.rfc);
-      setEmail(fields.email);
-      setEvalPhase("done");
-    } catch {
-      setError("No se pudo leer el archivo. Probá PDFs sueltos o un ZIP válido.");
-      setEvalPhase("idle");
-    } finally {
-      setBusy(false);
-    }
+  function openUpload(docId?: string) {
+    setFocusDoc(docId ?? null);
+    setDocsScreen("upload");
+    setUploadPhase("idle");
   }
 
-  function onPick(e: ChangeEvent<HTMLInputElement>) {
-    if (e.target.files?.length) void ingestFiles(e.target.files);
-    e.target.value = "";
-  }
+  async function simulateUploadAndRecognize() {
+    if (!kind || recognizing) return;
 
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    setDragOver(false);
-    if (e.dataTransfer.files?.length) void ingestFiles(e.dataTransfer.files);
+    const pack = mockPackageForKind(kind);
+    setDocs(pack);
+    setUploadPhase("recognizing");
+
+    // Brief “files landed” beat, then backend recognition (~2s total).
+    await wait(400);
+    setDocs((prev) => prev.map((d) => ({ ...d, status: "reading" })));
+    await wait(1600);
+    const fields = mockExtract(kind, pack);
+    setDocs((prev) =>
+      prev.map((d) => ({
+        ...d,
+        status: d.kindHint === "otros" ? "low_confidence" : "extracted",
+      })),
+    );
+    setExtracted(fields);
+    setName(fields.name);
+    setRfc(fields.rfc === "— (hereda del padre)" ? "" : fields.rfc);
+    setEmail(fields.email);
+    setUploadPhase("done");
+    setDocsScreen("list");
+    setStep(3);
   }
 
   function create() {
@@ -192,7 +183,7 @@ function OnboardingInner() {
       <header className="card mb-4">
         <h1 className="m-0 text-[22px] font-bold tracking-tight">Alta asistida</h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
-          Documentos primero: cargá PDF/ZIP → extracción automática → el operador solo verifica RFC y
+          Documentos primero: cargá el paquete → reconocimiento automático (~2s) → verificá RFC y
           datos.
         </p>
       </header>
@@ -229,7 +220,9 @@ function OnboardingInner() {
                 setKind(k.id);
                 setDocs([]);
                 setExtracted(null);
-                setEvalPhase("idle");
+                setUploadPhase("idle");
+                setDocsScreen("list");
+                setFocusDoc(null);
                 setName("");
                 setRfc("");
                 setEmail("");
@@ -244,7 +237,7 @@ function OnboardingInner() {
               <p className="mt-2 text-[13px] text-[var(--muted)]">{k.blurb}</p>
               <ul className="mt-2 list-disc pl-4 text-xs text-[var(--ink-2)]">
                 {k.expected.map((d) => (
-                  <li key={d}>{d}</li>
+                  <li key={d.id}>{d.label}</li>
                 ))}
               </ul>
             </button>
@@ -254,69 +247,99 @@ function OnboardingInner() {
 
       {step === 2 && kind && meta ? (
         <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
-          <section className="card">
-            <h2>Carga documental</h2>
-            <p className="mb-3 text-[13px] text-[var(--muted)]">
-              Subí uno o varios archivos, o un <strong className="font-semibold text-[var(--ink-2)]">ZIP</strong>{" "}
-              que se descomprime acá. Después corre la evaluación automática (clasificación + extracción
-              mock).
-            </p>
-
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              accept=".pdf,.png,.jpg,.jpeg,.zip,application/pdf,application/zip,image/*"
-              className="sr-only"
-              onChange={onPick}
-            />
-
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-              }}
-              onDrop={onDrop}
-              className={`flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed px-4 py-10 text-center transition-colors ${
-                dragOver
-                  ? "border-[var(--action)] bg-[var(--surface-2)]"
-                  : "border-[var(--line-strong)] bg-[var(--surface-2)]/40 hover:border-[var(--action)]"
-              } disabled:opacity-50`}
-            >
-              <span className="text-[14px] font-semibold tracking-tight">
-                {busy ? "Procesando…" : "Soltá archivos o hacé clic para elegir"}
-              </span>
-              <span className="text-[12px] text-[var(--muted)]">
-                PDF, imágenes o ZIP · varios a la vez
-              </span>
-            </button>
-
-            {error ? (
-              <p className="mt-3 text-[13px] font-medium text-[var(--fail)]" role="alert">
-                {error}
+          {docsScreen === "list" ? (
+            <section className="card">
+              <h2>Documentos requeridos</h2>
+              <p className="mb-3 text-[13px] text-[var(--muted)]">
+                Tocá un documento (o el botón de carga) para abrir la pantalla de subida. En el
+                prototipo la carga es simulada.
               </p>
-            ) : null}
+              <ul className="grid gap-2">
+                {meta.expected.map((d) => (
+                  <li key={d.id}>
+                    <button
+                      type="button"
+                      disabled={recognizing}
+                      onClick={() => openUpload(d.id)}
+                      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-left transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--surface-2)] disabled:opacity-50"
+                    >
+                      <div>
+                        <div className="text-[13px] font-semibold">{d.label}</div>
+                        <div className="text-[11px] text-[var(--muted)]">
+                          Clic para cargar / simular paquete
+                        </div>
+                      </div>
+                      <span className="text-[12px] font-bold text-[var(--primary)]">Cargar</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-            {docs.length > 0 ? (
-              <div className="mt-4">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="m-0 text-[13px] font-semibold">
-                    {docs.length} documento{docs.length === 1 ? "" : "s"} en el paquete
-                  </h3>
-                  <EvalBadge phase={evalPhase} />
-                </div>
-                <ul className="grid gap-2">
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  disabled={recognizing}
+                  className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)] disabled:opacity-40"
+                >
+                  Atrás
+                </button>
+                <button
+                  type="button"
+                  disabled={recognizing}
+                  onClick={() => openUpload()}
+                  className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
+                >
+                  Cargar documentos
+                </button>
+              </div>
+            </section>
+          ) : (
+            <section className="card">
+              <h2>Subir documentos</h2>
+              <p className="mb-3 text-[13px] text-[var(--muted)]">
+                {focusDoc
+                  ? `Carga iniciada desde «${meta.expected.find((d) => d.id === focusDoc)?.label}». `
+                  : null}
+                En el prototipo, un clic simula el paquete (ZIP descomprimido) y dispara el
+                reconocimiento en backend.
+              </p>
+
+              <button
+                type="button"
+                disabled={recognizing}
+                onClick={() => void simulateUploadAndRecognize()}
+                aria-busy={recognizing}
+                className={`flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed px-4 py-12 text-center transition-colors ${
+                  recognizing
+                    ? "border-[var(--warn)] bg-[var(--warn-bg)]"
+                    : "border-[var(--line-strong)] bg-[var(--surface-2)]/40 hover:border-[var(--action)]"
+                } disabled:cursor-wait`}
+              >
+                {recognizing ? (
+                  <>
+                    <span className="inline-flex h-5 w-5 animate-spin rounded-full border-2 border-[var(--warn)] border-t-transparent" />
+                    <span className="text-[14px] font-semibold tracking-tight text-[var(--warn)]">
+                      Reconocimiento de datos en curso…
+                    </span>
+                    <span className="text-[12px] text-[var(--muted)]">
+                      Clasificando documentos y extrayendo RFC / identidad (mock backend)
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[14px] font-semibold tracking-tight">
+                      Clic para simular carga del paquete
+                    </span>
+                    <span className="text-[12px] text-[var(--muted)]">
+                      PDF / ZIP mock · sin diálogo de archivos
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {docs.length > 0 && recognizing ? (
+                <ul className="mt-4 grid gap-2">
                   {docs.map((d) => (
                     <li
                       key={d.id}
@@ -326,46 +349,39 @@ function OnboardingInner() {
                         <div className="truncate text-[13px] font-semibold">{d.name}</div>
                         <div className="mt-0.5 text-[11px] text-[var(--muted)]">
                           {kindHintLabel[d.kindHint]}
-                          {d.source === "zip" ? ` · desde ${d.zipName}` : ""}
+                          {d.source === "zip" ? ` · ${d.zipName}` : ""}
                           {d.size ? ` · ${formatBytes(d.size)}` : ""}
                         </div>
                       </div>
-                      <DocStatus status={d.status} />
+                      <span className="shrink-0 text-[11px] font-bold text-[var(--muted)]">
+                        {d.status === "reading" ? "Leyendo" : "En cola"}
+                      </span>
                     </li>
                   ))}
                 </ul>
-              </div>
-            ) : (
-              <div className="mt-4 text-[12px] text-[var(--muted)]">
-                Esperados para {meta.title}: {meta.expected.join(" · ")}
-              </div>
-            )}
+              ) : null}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
-              >
-                Atrás
-              </button>
-              <button
-                type="button"
-                disabled={evalPhase !== "done" || !docs.length}
-                onClick={() => setStep(3)}
-                className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
-              >
-                Revisar datos extraídos
-              </button>
-            </div>
-          </section>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={recognizing}
+                  onClick={() => {
+                    setDocsScreen("list");
+                    setFocusDoc(null);
+                  }}
+                  className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)] disabled:opacity-40"
+                >
+                  Atrás
+                </button>
+              </div>
+            </section>
+          )}
 
           <section className="card">
             <h2>Recorrido {personKindLabel[kind]}</h2>
             <ProcessStepper steps={previewSteps(kind)} />
             <p className="mt-3 text-[12px] text-[var(--muted)]">
-              Prototipo: la extracción es simulada. En ola 2 corre el worker de ingesta + reglas
-              documentales.
+              Prototipo clickable: el reconocimiento dura ~2s y luego pasa a verificar datos.
             </p>
           </section>
         </div>
@@ -377,12 +393,30 @@ function OnboardingInner() {
             <div>
               <h2 className="!mb-1">Verificar datos extraídos</h2>
               <p className="m-0 text-[13px] text-[var(--muted)]">
-                No hace falta cargar todo a mano: confirmá o corregí lo que salió del paquete
-                documental.
+                El reconocimiento ya corrió. Confirmá o corregí lo que salió del paquete.
               </p>
             </div>
             {extracted ? <ConfidencePill level={extracted.confidence} /> : null}
           </div>
+
+          {docs.length > 0 ? (
+            <div className="mb-4">
+              <div className="mb-2 text-[12px] font-semibold text-[var(--ink-2)]">
+                Paquete reconocido ({docs.length})
+              </div>
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {docs.map((d) => (
+                  <li
+                    key={d.id}
+                    className="truncate rounded-md border border-[var(--line)] px-2.5 py-1.5 text-[12px]"
+                  >
+                    <span className="font-medium">{d.name}</span>
+                    <span className="text-[var(--muted)]"> · {kindHintLabel[d.kindHint]}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {extracted?.notes.length ? (
             <ul className="mb-4 list-disc rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-[12px] text-[var(--ink-2)]">
@@ -466,22 +500,20 @@ function OnboardingInner() {
             ) : null}
           </div>
 
-          <div className="mt-3 text-[12px] text-[var(--muted)]">
-            Paquete: {docs.length} archivo{docs.length === 1 ? "" : "s"} ·{" "}
-            {docs.filter((d) => d.status === "extracted").length} clasificados
-          </div>
-
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setStep(2)}
+              onClick={() => {
+                setStep(2);
+                setDocsScreen("list");
+              }}
               className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
             >
               Atrás
             </button>
             <button
               type="button"
-              disabled={!canVerify || evaluating}
+              disabled={!canVerify}
               onClick={create}
               className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
             >
@@ -527,48 +559,6 @@ function OnboardingInner() {
         </section>
       ) : null}
     </>
-  );
-}
-
-function wait(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
-
-function EvalBadge({ phase }: { phase: EvalPhase }) {
-  const map: Record<EvalPhase, string> = {
-    idle: "Sin evaluar",
-    unpacking: "Descomprimiendo…",
-    classifying: "Clasificando…",
-    extracting: "Extrayendo datos…",
-    done: "Evaluación lista",
-  };
-  const done = phase === "done";
-  return (
-    <span
-      className={`rounded-md px-2 py-1 text-[11px] font-bold ${
-        done
-          ? "bg-[var(--ok-bg)] text-[var(--ok)]"
-          : phase === "idle"
-            ? "bg-[var(--surface-2)] text-[var(--muted)]"
-            : "bg-[var(--warn-bg)] text-[var(--warn)]"
-      }`}
-    >
-      {map[phase]}
-    </span>
-  );
-}
-
-function DocStatus({ status }: { status: IngestedDoc["status"] }) {
-  const label =
-    status === "extracted"
-      ? "OK"
-      : status === "low_confidence"
-        ? "Revisar"
-        : status === "reading"
-          ? "Leyendo"
-          : "En cola";
-  return (
-    <span className="shrink-0 text-[11px] font-bold tabular-nums text-[var(--muted)]">{label}</span>
   );
 }
 
