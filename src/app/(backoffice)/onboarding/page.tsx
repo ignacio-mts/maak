@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ProcessStepper } from "@/components/ProcessStepper";
 import { useCases } from "@/lib/cases-context";
 import { personKindLabel } from "@/lib/labels";
@@ -82,7 +82,9 @@ function OnboardingInner() {
   const [dirty, setDirty] = useState<DirtyMap>({ name: false, rfc: false, email: false });
   const [createdId, setCreatedId] = useState<string | null>(null);
   const formRef = useRef({ name, rfc, email, dirty });
-  formRef.current = { name, rfc, email, dirty };
+  useEffect(() => {
+    formRef.current = { name, rfc, email, dirty };
+  }, [name, rfc, email, dirty]);
 
   const meta = kind ? templates[kind] : null;
   const recognizing = uploadPhase === "recognizing";
