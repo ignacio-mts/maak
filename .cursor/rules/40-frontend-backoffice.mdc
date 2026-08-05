@@ -1,0 +1,17 @@
+---
+description: Cursor-like light/dark UI tokens for backoffice and intake
+globs:
+  - src/app/**/*.tsx
+  - src/components/**/*.tsx
+  - src/app/globals.css
+---
+
+# Frontend / backoffice UI
+
+- Tokens in `src/app/globals.css`: zinc neutrals, accent `#e85d04` / `#f97316`, Geist.
+- Support **light / dark / system** via icon-only `ThemeToggle` (tooltip on hover; `class="dark"` when resolved dark).
+- Ban SPEI navy/purple/gold and copying styles from `docs/13_*.html`.
+- Prefer tool UI density; avoid marketing hero layouts in backoffice.
+- **UX decisions SoT:** `docs/ux/UX_PATTERNS.md` + `docs/ux/UXDR-*.md` (do not re-litigate without updating those).
+- Onboarding-specific rules: `41-onboarding-ux.mdc`.
+- Detail tokens: `docs/engineering/DESIGN_TOKENS.md`.

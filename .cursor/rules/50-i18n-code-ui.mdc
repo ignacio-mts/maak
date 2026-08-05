@@ -1,0 +1,10 @@
+---
+description: Code in English; UI copy in Spanish
+alwaysApply: true
+---
+
+# i18n
+
+- **Code** (identifiers, files, comments, types): English.
+- **UI** (labels, buttons, empty states, errors shown to users): Spanish.
+- Route paths stay English (`/cases`, `/onboarding`); user-facing strings via components/`labels.ts`.

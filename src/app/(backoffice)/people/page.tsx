@@ -15,7 +15,7 @@ export default function PeoplePage() {
         Catálogo / <strong className="font-semibold text-[var(--ink-2)]">Personas</strong>
       </div>
       <header className="card mb-4">
-        <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">
+        <h1 className="m-0 text-[22px] font-bold tracking-tight">
           Personas verificadas
         </h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
@@ -34,7 +34,7 @@ export default function PeoplePage() {
               <Link
                 key={c.id}
                 href={`/cases/${c.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-3 hover:bg-[#F8FAFC]"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-3 hover:bg-[var(--surface-2)]"
               >
                 <div>
                   <div className="font-bold">{c.name}</div>

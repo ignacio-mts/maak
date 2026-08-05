@@ -19,78 +19,96 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="mb-3.5 text-xs text-[var(--muted)]">
-        <strong className="font-semibold text-[var(--ink-2)]">Inicio</strong>
-      </div>
-      <header className="card mb-4">
-        <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">
-          Operación de altas
-        </h1>
-        <p className="mt-1 text-[13px] text-[var(--muted)]">
-          Onboarding de personas morales, físicas y centros de costo. Maak certifica la identidad; el core activa la cuenta.
+      <header className="mb-6">
+        <h1 className="m-0 text-[22px] font-semibold tracking-tight">Operación de altas</h1>
+        <p className="mt-1 max-w-2xl text-[13px] text-[var(--muted)]">
+          Onboarding de personas morales, físicas y centros de costo. Maak certifica la identidad
+          (Persona verificada); el core materializa la cuenta activa.
         </p>
       </header>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="card mb-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">En revisión / bloqueados</div>
-          <div className="mt-1 text-2xl font-bold text-[var(--warn)]">{review}</div>
-        </div>
-        <div className="card mb-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Personas verificadas</div>
-          <div className="mt-1 text-2xl font-bold text-[var(--ok)]">{verified}</div>
-        </div>
-        <div className="card mb-0">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">Casos abiertos</div>
-          <div className="mt-1 text-2xl font-bold">{cases.length}</div>
-          <div className="mt-1 text-xs text-[var(--muted)]">
-            {byKind.legal_entity} PM · {byKind.natural_person} PF · {byKind.cost_center} CC
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        {[
+          { label: "En revisión / bloqueados", value: review, tone: "text-[var(--warn)]" },
+          { label: "Personas verificadas", value: verified, tone: "text-[var(--ok)]" },
+          {
+            label: "Casos en sesión",
+            value: cases.length,
+            tone: "text-[var(--ink)]",
+            sub: `${byKind.legal_entity} PM · ${byKind.natural_person} PF · ${byKind.cost_center} CC`,
+          },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">
+              {stat.label}
+            </div>
+            <div className={`mt-1 text-[28px] font-semibold tracking-tight tabular-nums ${stat.tone}`}>
+              {stat.value}
+            </div>
+            {"sub" in stat && stat.sub ? (
+              <div className="mt-1 text-[11px] text-[var(--muted)]">{stat.sub}</div>
+            ) : null}
           </div>
-        </div>
+        ))}
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <Link href="/onboarding?kind=legal_entity" className="card mb-0 block hover:border-[var(--primary)]">
-          <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Flujo</div>
-          <h2 className="!mb-1 mt-1">Alta persona moral</h2>
-          <p className="m-0 text-[13px] text-[var(--muted)]">Datos → docs → riesgo → firma → verificación</p>
+      <div className="mb-5 grid gap-3 md:grid-cols-3">
+        {[
+          {
+            href: "/onboarding?kind=legal_entity",
+            title: "Alta persona moral",
+            body: "Expediente unificado: carga + checklist + campos",
+          },
+          {
+            href: "/onboarding?kind=natural_person",
+            title: "Alta persona física",
+            body: "Expediente unificado: carga + checklist + campos",
+          },
+          {
+            href: "/onboarding?kind=cost_center",
+            title: "Alta centro de costo",
+            body: "Expediente unificado + padre autorizado",
+          },
+        ].map((flow) => (
+          <Link
+            key={flow.href}
+            href={flow.href}
+            className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3 transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--surface-2)]"
+          >
+            <div className="text-[11px] font-semibold tracking-tight text-[var(--primary)]">Flujo</div>
+            <h2 className="mt-1 text-[14px] font-semibold tracking-tight">{flow.title}</h2>
+            <p className="m-0 mt-1 text-[12.5px] text-[var(--muted)]">{flow.body}</p>
+          </Link>
+        ))}
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Link href="/cases" className="btn btn-primary">
+          Ir a casos pendientes
         </Link>
-        <Link href="/onboarding?kind=natural_person" className="card mb-0 block hover:border-[var(--primary)]">
-          <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Flujo</div>
-          <h2 className="!mb-1 mt-1">Alta persona física</h2>
-          <p className="m-0 text-[13px] text-[var(--muted)]">INE / identidad → listas → firma → verificación</p>
+        <Link href="/client/cc" className="btn btn-secondary">
+          Vista cliente · alta CC
         </Link>
-        <Link href="/onboarding?kind=cost_center" className="card mb-0 block hover:border-[var(--primary)]">
-          <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Flujo</div>
-          <h2 className="!mb-1 mt-1">Alta centro de costo</h2>
-          <p className="m-0 text-[13px] text-[var(--muted)]">Vínculo al padre → GE → listas → verificación</p>
+        <Link href="/ingestion" className="btn btn-secondary">
+          Simular ingesta
+        </Link>
+        <Link href="/rules" className="btn btn-secondary">
+          Reglas
         </Link>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/cases" className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white">
-          Ir a cola de casos
-        </Link>
-        <Link href="/ingestion" className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold">
-          Simular ingesta por correo
-        </Link>
-        <Link href="/rules" className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold">
-          Configurar reglas
-        </Link>
-      </div>
-
-      <section className="card">
-        <h2>Recientes</h2>
-        <div className="grid gap-2">
+      <section className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-4 py-3">
+        <h2 className="m-0 mb-3 text-[13px] font-semibold tracking-tight">Recientes</h2>
+        <div className="grid gap-1.5">
           {recent.map((c) => (
             <Link
               key={c.id}
               href={`/cases/${c.id}`}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2.5 hover:bg-[#F8FAFC]"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius)] px-2.5 py-2 hover:bg-[var(--surface-2)]"
             >
               <div>
-                <div className="font-bold">{c.name}</div>
-                <div className="text-xs text-[var(--muted)]">
+                <div className="text-[13px] font-semibold tracking-tight">{c.name}</div>
+                <div className="font-mono text-[11px] text-[var(--muted)]">
                   {c.id} · {personKindLabel[c.kind]}
                 </div>
               </div>

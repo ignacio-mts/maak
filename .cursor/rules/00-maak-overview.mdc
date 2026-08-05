@@ -1,0 +1,12 @@
+---
+description: Maak Ola 1 overview — mock UI, bans, where to read
+alwaysApply: true
+---
+
+# Maak overview
+
+- **Ola 1** = Next.js clickable mock on Vercel. Mock data in `src/lib/data.ts`; session in `src/lib/cases-context.tsx`.
+- Maak certifies **Persona VERIFICADA**. Never Account / SPEI / CLABE / saldos.
+- Before non-trivial work: `docs/engineering/AGENT_PLAYBOOK.md`, `DOMAIN.md`, `ARCHITECTURE.md`.
+- `docs/13_*.html` = domain/flow sources, **not** visual tokens.
+- FaceBinding / SICLI adapters = ola 2 design; do not implement vendor SDKs in ola 1 UI.

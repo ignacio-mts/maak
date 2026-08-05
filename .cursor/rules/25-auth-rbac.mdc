@@ -1,0 +1,18 @@
+---
+description: Site password gate vs product RBAC (Ops/PLD/cc_creator)
+globs:
+  - src/app/login/**
+  - src/app/api/login/**
+  - src/app/api/logout/**
+  - src/lib/session.ts
+  - src/proxy.ts
+  - docs/engineering/AUTH_RBAC.md
+  - docs/prd/PRD-04_Access_Control.md
+---
+
+# Auth & RBAC
+
+- `SITE_PASSWORD` + iron-session = **prototype gate only**.
+- Product roles: **Ops**, **PLD**, **Cliente (`cc_creator`)** with `user ↔ parentPersonaId`.
+- Password gate ≠ RBAC — do not mint fake role JWTs in ola 1.
+- Detail: `docs/engineering/AUTH_RBAC.md`, `docs/prd/PRD-04_Access_Control.md`.

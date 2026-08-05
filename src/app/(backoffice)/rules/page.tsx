@@ -21,7 +21,7 @@ export default function RulesPage() {
         Configuración / <strong className="font-semibold text-[var(--ink-2)]">Reglas</strong>
       </div>
       <header className="card mb-4">
-        <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">
+        <h1 className="m-0 text-[22px] font-bold tracking-tight">
           Diccionario de reglas
         </h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
@@ -43,7 +43,9 @@ export default function RulesPage() {
             type="button"
             onClick={() => setFilter(id)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              filter === id ? "bg-[var(--primary)] text-white" : "border border-[var(--line)] bg-white"
+              filter === id
+                ? "bg-[var(--action)] text-[var(--action-fg)]"
+                : "border border-[var(--line)] bg-[var(--surface)] hover:border-[var(--line-strong)]"
             }`}
           >
             {label}
@@ -75,7 +77,7 @@ export default function RulesPage() {
                   setPreview(r);
                   setPublished(null);
                 }}
-                className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white"
+                className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]"
               >
                 Publicar
               </button>
@@ -89,8 +91,8 @@ export default function RulesPage() {
             <p className="m-0 text-[13px] text-[var(--muted)]">Seleccioná una regla para ver el reproceso.</p>
           ) : (
             <>
-              <div className="rounded-[10px] bg-[var(--ink)] p-3.5 text-white">
-                Reproceso estimado · <b className="text-[#93C5FD]">{preview.impact.personas} personas</b>
+              <div className="rounded-[10px] border border-[var(--line)] bg-[var(--emph-bg)] p-3.5 text-[var(--emph-fg)]">
+                Reproceso estimado · <b className="text-[var(--emph-accent)]">{preview.impact.personas} personas</b>
                 <br />
                 <span className="text-xs opacity-85">
                   {preview.impact.pass} OK · {preview.impact.adequacy} plan de adecuación · {preview.impact.block}{" "}
@@ -100,7 +102,7 @@ export default function RulesPage() {
               <button
                 type="button"
                 onClick={() => setPublished(preview.id)}
-                className="mt-3 w-full rounded-lg bg-[var(--primary)] px-3 py-2.5 text-[13px] font-bold text-white"
+                className="mt-3 w-full rounded-lg bg-[var(--action)] px-3 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]"
               >
                 Confirmar publicación
               </button>

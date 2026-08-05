@@ -44,16 +44,16 @@ export default function CasesPage() {
       </div>
       <header className="card mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">Cola de casos</h1>
+          <h1 className="m-0 text-[22px] font-bold tracking-tight">Casos pendientes</h1>
           <p className="mt-1 text-[13px] text-[var(--muted)]">
             Filtrá por tipo de persona y estado. “A cargo de” indica quién debe actuar.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/onboarding" className="rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white">
+          <Link href="/onboarding" className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]">
             Nueva alta
           </Link>
-          <Link href="/ingestion" className="rounded-lg border border-[var(--line)] bg-white px-3.5 py-2.5 text-[13px] font-bold">
+          <Link href="/ingestion" className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]">
             Ingesta
           </Link>
         </div>
@@ -67,8 +67,8 @@ export default function CasesPage() {
             onClick={() => setKind(f.id)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
               kind === f.id
-                ? "bg-[var(--primary)] text-white"
-                : "border border-[var(--line)] bg-white text-[var(--ink-2)]"
+                ? "bg-[var(--action)] text-[var(--action-fg)]"
+                : "border border-[var(--line)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--line-strong)]"
             }`}
           >
             {f.label}
@@ -77,7 +77,7 @@ export default function CasesPage() {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as "all" | CaseStatus)}
-          className="rounded-lg border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold"
+          className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-semibold"
         >
           {statusFilters.map((f) => (
             <option key={f.id} value={f.id}>
@@ -100,7 +100,7 @@ export default function CasesPage() {
           <Link
             key={c.id}
             href={`/cases/${c.id}`}
-            className="grid min-w-[760px] grid-cols-[1.5fr_120px_110px_100px_80px_1fr] items-center gap-2 border-b border-[var(--line)] py-3 last:border-0 hover:bg-[#F8FAFC]"
+            className="grid min-w-[760px] grid-cols-[1.5fr_120px_110px_100px_80px_1fr] items-center gap-2 border-b border-[var(--line)] py-3 last:border-0 hover:bg-[var(--surface-2)]"
           >
             <div>
               <div className="font-bold">{c.name}</div>

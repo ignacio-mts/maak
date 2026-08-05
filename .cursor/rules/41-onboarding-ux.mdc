@@ -1,0 +1,15 @@
+---
+description: Onboarding / alta asistida UX decisions (docs-first, LLM discrepancy)
+globs:
+  - src/app/(backoffice)/onboarding/**/*
+  - src/lib/onboarding-ingest.ts
+---
+
+# Onboarding UX (must follow)
+
+- Flow UI: **Tipo → Expediente → Listo**. Docs-first after kind; no separate “Verificar” step.
+- Expediente = **one screen**: upload zone + template checklist + template fields.
+- Mock upload may simulate ZIP; recognition ~2s with status on the upload control.
+- Fields stay **editable during recognition**. Never lock/disable form fields for agent/LLM.
+- Empty field + LLM value → autofill. Operator value ≠ LLM → warning + “Usar valor del LLM” (do not overwrite).
+- SoT: `docs/ux/UX_PATTERNS.md`, `docs/ux/UXDR-001_*`, `docs/ux/UXDR-002_*`.

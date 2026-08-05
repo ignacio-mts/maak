@@ -1,0 +1,14 @@
+---
+description: Domain glossary — Persona, VERIFICADA≠ACTIVA, Case, Gap, PersonaOK
+alwaysApply: true
+---
+
+# Domain glossary (must)
+
+- **Persona** — identity + expediente + KYC/KYB/PLD (PM/PF/CC child).
+- **VERIFICADA ≠ ACTIVA** — Maak verifies Persona; core/SICLI-transition activates Account.
+- **Case** — HITL work unit; may close while Account is still activating.
+- **Gap** — blocking pending item; **IntakeLink** = write-only client token.
+- **Control / Rule / Template** — evaluator config; preview impact before publish.
+- **PersonaOK** — event when VERIFICADA; downstream adapter or core — not SPEI.
+- Ownership: Maak ≠ Core/Xook/EF/COE/SICLI — see `docs/engineering/DOMAIN.md`.

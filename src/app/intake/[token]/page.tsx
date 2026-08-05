@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useCases } from "@/lib/cases-context";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function IntakePage() {
   const params = useParams<{ token: string }>();
@@ -16,7 +17,7 @@ export default function IntakePage() {
   if (!c) {
     return (
       <div className="mx-auto max-w-[520px] px-5 py-16 text-center">
-        <h1 className="font-[family-name:var(--font-ui)] text-xl font-bold">Enlace no válido o vencido</h1>
+        <h1 className="text-xl font-bold">Enlace no válido o vencido</h1>
         <p className="mt-2 text-[13px] text-[var(--muted)]">Pedí un nuevo enlace al equipo de STP.</p>
       </div>
     );
@@ -26,8 +27,11 @@ export default function IntakePage() {
 
   return (
     <div className="mx-auto min-h-screen max-w-[520px] px-5 py-10">
+      <div className="mb-4 flex justify-end">
+        <ThemeToggle tooltipSide="bottom" />
+      </div>
       <div className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Cliente</div>
-      <h1 className="m-0 font-[family-name:var(--font-ui)] text-[24px] font-extrabold tracking-tight">
+      <h1 className="m-0 text-[24px] font-extrabold tracking-tight">
         Documentos pendientes
       </h1>
       <p className="mt-1 text-[13px] text-[var(--muted)]">
@@ -54,7 +58,7 @@ export default function IntakePage() {
               <div
                 key={g.id}
                 className={`mb-2 rounded-lg border px-3 py-2.5 ${
-                  ok ? "border-[#A7F3D0] bg-[var(--ok-bg)]" : "border-[#FECACA] bg-[var(--fail-bg)]"
+                  ok ? "border-[var(--ok-line)] bg-[var(--ok-bg)]" : "border-[var(--fail-line)] bg-[var(--fail-bg)]"
                 }`}
               >
                 <strong className="mb-0.5 block text-[13px]">{g.title}</strong>
@@ -68,7 +72,7 @@ export default function IntakePage() {
                       setUploaded((u) => ({ ...u, [g.id]: true }));
                       markGapUploaded(c.id, g.id);
                     }}
-                    className="mt-2 w-full rounded-lg bg-[var(--primary)] px-3 py-2.5 text-[13px] font-bold text-white"
+                    className="mt-2 w-full rounded-lg bg-[var(--action)] px-3 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)]"
                   >
                     {g.action}
                   </button>

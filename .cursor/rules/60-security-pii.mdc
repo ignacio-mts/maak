@@ -1,0 +1,12 @@
+---
+description: PII minimization, secrets, prototype security baselines
+alwaysApply: true
+---
+
+# Security & PII
+
+- Never commit real secrets; use `.env.local` / `.env.example` placeholders.
+- Mock personas must be synthetic (fake RFC/names).
+- No real biometrics or vendor face payloads in ola 1.
+- Site password protects the prototype; it is not fine-grained authZ.
+- Do not log full PII in client consoles for “debugging demos.”
