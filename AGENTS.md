@@ -13,3 +13,10 @@ Standard commands are in `package.json` (`dev`, `build`, `start`, `lint`); the u
 - App state is in-memory only: cases created through `/onboarding` reset on full page reload/server restart. Exercise flows within a single browser session.
 - Code is written in English; UI copy is in Spanish. Key routes are documented in `README.md`.
 - Site password gate (`iron-session`): requires `SITE_PASSWORD` and `SESSION_SECRET` (≥32 chars) in `.env.local` (see `.env.example`). Next.js 16 uses `src/proxy.ts` (not `middleware.ts`) to redirect unauthenticated traffic to `/login`. `/login` and `/api/login` are public; everything else needs a valid session cookie.
+- UI direction: Cursor-like tool UI with first-class light/dark themes. Docs under `docs/13_*` are domain/flow sources, not visual tokens. Do not reintroduce SPEI navy/purple/gold product theming.
+- Smoke-test: `/login` → `/onboarding` → create case → open `/cases/[id]` → simulate verification; also check theme toggle in light and dark.
+
+## Agent playbook
+
+Before non-trivial work, read `docs/engineering/AGENT_PLAYBOOK.md` and matching `.cursor/rules/*`.
+Never implement Account/SPEI/CLABE/saldos in this repo. Face/liveness only via `FaceBinding` adapters (ola 2).

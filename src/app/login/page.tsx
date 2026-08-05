@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function LoginForm() {
   const router = useRouter();
@@ -39,38 +40,37 @@ function LoginForm() {
   }
 
   return (
-    <main className="flex min-h-full items-center justify-center px-4 py-12">
-      <form
-        onSubmit={onSubmit}
-        className="card mb-0 w-full max-w-sm"
-        style={{ boxShadow: "0 8px 30px rgba(15, 23, 42, 0.06)" }}
-      >
-        <div className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
+    <main className="relative flex min-h-full items-center justify-center bg-[var(--bg)] px-4 py-12">
+      <div className="absolute right-4 top-4 w-40">
+        <ThemeToggle />
+      </div>
+      <form onSubmit={onSubmit} className="card mb-0 w-full max-w-sm">
+        <div className="text-[12px] font-semibold tracking-tight text-[var(--primary)]">
           Maak
         </div>
-        <h1 className="m-0 font-[family-name:var(--font-ui)] text-[22px] font-bold tracking-tight">
+        <h1 className="m-0 mt-1 text-[20px] font-semibold tracking-tight">
           Acceso al prototipo
         </h1>
         <p className="mt-1.5 text-[13px] text-[var(--muted)]">
-          Este sitio está protegido. Ingresá la contraseña para continuar.
+          Sitio protegido para revisión interna. No es producción.
         </p>
 
-        <label className="mt-4 grid gap-1 text-[13px]">
-          <span className="font-semibold text-[var(--ink-2)]">Contraseña</span>
+        <label className="mt-5 grid gap-1.5 text-[13px]">
+          <span className="font-medium text-[var(--ink-2)]">Contraseña</span>
           <input
             type="password"
             name="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="rounded-lg border border-[var(--line)] px-3 py-2"
+            className="px-3 py-2"
             required
             autoFocus
           />
         </label>
 
         {error ? (
-          <p className="mt-2 text-[13px] font-semibold text-[var(--fail)]" role="alert">
+          <p className="mt-2 text-[13px] font-medium text-[var(--fail)]" role="alert">
             {error}
           </p>
         ) : null}
@@ -78,7 +78,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={pending || !password}
-          className="mt-4 w-full rounded-lg bg-[var(--primary)] px-3.5 py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+          className="btn btn-primary mt-4 w-full disabled:opacity-40"
         >
           {pending ? "Entrando…" : "Entrar"}
         </button>

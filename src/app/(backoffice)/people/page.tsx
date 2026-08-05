@@ -34,7 +34,7 @@ export default function PeoplePage() {
               <Link
                 key={c.id}
                 href={`/cases/${c.id}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-3 hover:bg-[#F8FAFC]"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-3 hover:bg-[var(--surface-2)]"
               >
                 <div>
                   <div className="font-bold">{c.name}</div>
