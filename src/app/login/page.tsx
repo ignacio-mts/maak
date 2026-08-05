@@ -41,8 +41,8 @@ function LoginForm() {
 
   return (
     <main className="relative flex min-h-full items-center justify-center bg-[var(--bg)] px-4 py-12">
-      <div className="absolute right-4 top-4 w-40">
-        <ThemeToggle />
+      <div className="absolute right-4 top-4">
+        <ThemeToggle tooltipSide="bottom" />
       </div>
       <form onSubmit={onSubmit} className="card mb-0 w-full max-w-sm">
         <div className="text-[12px] font-semibold tracking-tight text-[var(--primary)]">

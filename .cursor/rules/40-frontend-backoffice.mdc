@@ -9,7 +9,7 @@ globs:
 # Frontend / backoffice UI
 
 - Tokens in `src/app/globals.css`: zinc neutrals, accent `#e85d04` / `#f97316`, Geist.
-- Support **light and dark** (`ThemeToggle`, `class="dark"`).
+- Support **light / dark / system** via icon-only `ThemeToggle` (tooltip on hover; `class="dark"` when resolved dark).
 - Ban SPEI navy/purple/gold and copying styles from `docs/13_*.html`.
 - Prefer tool UI density; avoid marketing hero layouts in backoffice.
 - Detail: `docs/engineering/DESIGN_TOKENS.md`.

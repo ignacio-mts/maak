@@ -28,7 +28,7 @@ export default function IntakePage() {
   return (
     <div className="mx-auto min-h-screen max-w-[520px] px-5 py-10">
       <div className="mb-4 flex justify-end">
-        <ThemeToggle />
+        <ThemeToggle tooltipSide="bottom" />
       </div>
       <div className="mb-1 text-xs font-bold uppercase tracking-wide text-[var(--primary)]">Cliente</div>
       <h1 className="m-0 text-[24px] font-extrabold tracking-tight">

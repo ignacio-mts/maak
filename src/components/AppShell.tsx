@@ -56,18 +56,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="mt-auto flex flex-col gap-2.5 border-t border-[var(--line)] px-0.5 pt-3">
-            <ThemeToggle />
-            <div className="flex items-center gap-2.5 px-1">
-              <div className="grid h-7 w-7 place-items-center rounded-md bg-[var(--action)] text-[11px] font-bold text-[var(--action-fg)]">
-                {operator.initials}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-[12.5px] font-semibold tracking-tight">
-                  {operator.name}
+          <div className="mt-auto border-t border-[var(--line)] px-0.5 pt-3">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[var(--action)] text-[11px] font-bold text-[var(--action-fg)]">
+                  {operator.initials}
                 </div>
-                <div className="truncate text-[11px] text-[var(--muted)]">{operator.role}</div>
+                <div className="min-w-0">
+                  <div className="truncate text-[12.5px] font-semibold tracking-tight">
+                    {operator.name}
+                  </div>
+                  <div className="truncate text-[11px] text-[var(--muted)]">
+                    {operator.role}
+                  </div>
+                </div>
               </div>
+              <ThemeToggle />
             </div>
           </div>
         </aside>

@@ -26,7 +26,7 @@ Abrir [http://localhost:3000](http://localhost:3000) → `/login` → `loquevien
 | Ruta | Pantalla |
 |------|----------|
 | `/` | Inicio / atajos de flujos |
-| `/cases` | Cola de casos (filtros PM / PF / CC) |
+| `/cases` | Casos pendientes (filtros PM / PF / CC) |
 | `/cases/[id]` | Detalle: proceso, tiempos, pendientes, acciones |
 | `/onboarding` | Alta asistida E2E (moral, física, centro de costo) |
 | `/ingestion` | Agente: correo → caso |

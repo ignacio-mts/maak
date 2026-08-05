@@ -84,7 +84,7 @@ export default function HomePage() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Link href="/cases" className="btn btn-primary">
-          Ir a cola de casos
+          Ir a casos pendientes
         </Link>
         <Link href="/client/cc" className="btn btn-secondary">
           Vista cliente · alta CC

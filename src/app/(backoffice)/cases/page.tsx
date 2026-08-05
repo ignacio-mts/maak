@@ -44,7 +44,7 @@ export default function CasesPage() {
       </div>
       <header className="card mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="m-0 text-[22px] font-bold tracking-tight">Cola de casos</h1>
+          <h1 className="m-0 text-[22px] font-bold tracking-tight">Casos pendientes</h1>
           <p className="mt-1 text-[13px] text-[var(--muted)]">
             Filtrá por tipo de persona y estado. “A cargo de” indica quién debe actuar.
           </p>

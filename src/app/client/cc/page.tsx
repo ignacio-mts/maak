@@ -45,9 +45,7 @@ export default function ClientCostCenterPage() {
           <div className="text-[15px] font-semibold tracking-tight">Maak</div>
           <div className="text-[11px] text-[var(--muted)]">Portal cliente · centros de costo</div>
         </div>
-        <div className="w-36">
-          <ThemeToggle />
-        </div>
+        <ThemeToggle tooltipSide="bottom" />
       </header>
 
       <main className="mx-auto max-w-xl px-4 pb-12">
