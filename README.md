@@ -46,8 +46,9 @@ Abrir [http://localhost:3000](http://localhost:3000) → `/login` → `loquevien
 ## Ingeniería / agentes
 
 - [`docs/engineering/`](docs/engineering/) — dominio, arquitectura, tokens, RBAC, FaceBinding, playbook
+- [`docs/ux/`](docs/ux/) — **decisiones UX vigentes** (`UX_PATTERNS.md` + `UXDR-*`)
 - [`docs/prd/`](docs/prd/) — charter MVP + access control
-- [`docs/adr/`](docs/adr/) — decisiones (rules engine, Fargate, face)
+- [`docs/adr/`](docs/adr/) — decisiones tech (rules engine, Fargate, face)
 - [`docs/jira/MAAK_BOARD_SETUP.md`](docs/jira/MAAK_BOARD_SETUP.md) — setup tablero Jira (único SoT)
 - [`docs/openapi/maak-onboarding.v0.yaml`](docs/openapi/maak-onboarding.v0.yaml) — contrato borrador (ola 2)
 - `.cursor/rules/` — reglas always-on para agentes

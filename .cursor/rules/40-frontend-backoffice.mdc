@@ -12,4 +12,6 @@ globs:
 - Support **light / dark / system** via icon-only `ThemeToggle` (tooltip on hover; `class="dark"` when resolved dark).
 - Ban SPEI navy/purple/gold and copying styles from `docs/13_*.html`.
 - Prefer tool UI density; avoid marketing hero layouts in backoffice.
-- Detail: `docs/engineering/DESIGN_TOKENS.md`.
+- **UX decisions SoT:** `docs/ux/UX_PATTERNS.md` + `docs/ux/UXDR-*.md` (do not re-litigate without updating those).
+- Onboarding-specific rules: `41-onboarding-ux.mdc`.
+- Detail tokens: `docs/engineering/DESIGN_TOKENS.md`.

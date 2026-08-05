@@ -13,8 +13,10 @@
 ## Before non-trivial work
 
 1. Read `DOMAIN.md` and `ARCHITECTURE.md`.
-2. Follow matching `.cursor/rules/*`.
-3. Keep **code English**, **UI Spanish** (`50-i18n-code-ui.mdc`).
+2. For UI/UX: read `docs/ux/UX_PATTERNS.md` (and relevant `docs/ux/UXDR-*.md`).
+3. Follow matching `.cursor/rules/*` (esp. `40-frontend`, `41-onboarding-ux`).
+4. Keep **code English**, **UI Spanish** (`50-i18n-code-ui.mdc`).
+5. New UX decision → add UXDR from `docs/ux/TEMPLATE_UXDR.md` + update patterns (see `docs/ux/README.md`).
 
 ## Data & session
 

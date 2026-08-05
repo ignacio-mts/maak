@@ -19,4 +19,5 @@ Standard commands are in `package.json` (`dev`, `build`, `start`, `lint`); the u
 ## Agent playbook
 
 Before non-trivial work, read `docs/engineering/AGENT_PLAYBOOK.md` and matching `.cursor/rules/*`.
+For UI/UX decisions, read **`docs/ux/UX_PATTERNS.md`** and `docs/ux/UXDR-*.md` — do not re-ask the user for settled patterns.
 Never implement Account/SPEI/CLABE/saldos in this repo. Face/liveness only via `FaceBinding` adapters (ola 2).

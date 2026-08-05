@@ -6,6 +6,7 @@
 - [ ] Code identifiers English; user-visible strings Spanish
 - [ ] UI uses tokens from `src/app/globals.css` (no SPEI navy/purple/gold)
 - [ ] Light **and** dark checked for UI changes
+- [ ] If UX/flow decision changed: `docs/ux/` updated (UX_PATTERNS and/or new UXDR) + rules if needed
 - [ ] Face/liveness only via FaceBinding port; no vendor SDK outside `src/adapters/face/`
 - [ ] Password gate changes do not pretend to be RBAC
 - [ ] PII: no secrets/PII in mocks beyond synthetic fixtures; no real biometrics
