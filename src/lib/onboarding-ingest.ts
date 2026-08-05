@@ -30,6 +30,18 @@ export type ExtractedFields = {
   notes: string[];
 };
 
+export type TemplateDoc = {
+  id: string;
+  label: string;
+  required: boolean;
+  hints: IngestedDoc["kindHint"][];
+};
+
+export type ChecklistItem = TemplateDoc & {
+  match: IngestedDoc | null;
+  state: "missing" | "matched" | "reading" | "low_confidence";
+};
+
 const DOC_HINTS: { re: RegExp; hint: IngestedDoc["kindHint"] }[] = [
   { re: /acta|constitut/i, hint: "acta" },
   { re: /csf|situaci[oó]n\s*fiscal|constancia/i, hint: "csf" },
@@ -54,6 +66,50 @@ function isArchive(file: File) {
     file.type === "application/x-zip-compressed"
   );
 }
+
+export const templates: Record<
+  PersonKind,
+  { title: string; blurb: string; docs: TemplateDoc[] }
+> = {
+  legal_entity: {
+    title: "Persona moral",
+    blurb: "Paquete documental → reconocimiento → el operador confirma campos del template.",
+    docs: [
+      { id: "acta", label: "Acta constitutiva (PDF completo)", required: true, hints: ["acta"] },
+      { id: "csf", label: "Constancia de situación fiscal", required: true, hints: ["csf"] },
+      { id: "poder", label: "Poder notarial del RL", required: true, hints: ["poder"] },
+      { id: "ine", label: "INE del representante legal", required: true, hints: ["ine"] },
+    ],
+  },
+  natural_person: {
+    title: "Persona física",
+    blurb: "INE + CSF (y domicilio si aplica). La extracción prellena identidad y RFC.",
+    docs: [
+      { id: "ine", label: "INE — frente / reverso", required: true, hints: ["ine"] },
+      { id: "csf", label: "Constancia de situación fiscal", required: true, hints: ["csf"] },
+      {
+        id: "dom",
+        label: "Comprobante de domicilio",
+        required: false,
+        hints: ["domicilio"],
+      },
+    ],
+  },
+  cost_center: {
+    title: "Centro de costo",
+    blurb: "Docs del CC + confirmación del padre autorizado.",
+    docs: [
+      { id: "datos", label: "Datos del centro de costo", required: true, hints: ["otros"] },
+      {
+        id: "auth",
+        label: "Autorización del padre",
+        required: true,
+        hints: ["autorizacion"],
+      },
+      { id: "ge", label: "Información GE", required: false, hints: ["ge"] },
+    ],
+  },
+};
 
 /** Expand selected files; ZIP archives are unzipped client-side. */
 export async function expandUploads(files: FileList | File[]): Promise<IngestedDoc[]> {
@@ -96,10 +152,7 @@ export async function expandUploads(files: FileList | File[]): Promise<IngestedD
 }
 
 /** Mock OCR / extraction — prototype only; no real document AI. */
-export function mockExtract(
-  kind: PersonKind,
-  docs: IngestedDoc[],
-): ExtractedFields {
+export function mockExtract(kind: PersonKind, docs: IngestedDoc[]): ExtractedFields {
   const hasCsf = docs.some((d) => d.kindHint === "csf");
   const hasActa = docs.some((d) => d.kindHint === "acta");
   const hasIne = docs.some((d) => d.kindHint === "ine");
@@ -135,7 +188,6 @@ export function mockExtract(
     };
   }
 
-  // cost center
   notes.push("Nombre de CC sugerido; el vínculo al padre lo confirma el operador.");
   return {
     name: "CC Operaciones Noreste",
@@ -186,6 +238,22 @@ export function mockPackageForKind(kind: PersonKind): IngestedDoc[] {
   }));
 }
 
+export function buildChecklist(kind: PersonKind, docs: IngestedDoc[]): ChecklistItem[] {
+  const used = new Set<string>();
+  return templates[kind].docs.map((slot) => {
+    const match =
+      docs.find((d) => slot.hints.includes(d.kindHint) && !used.has(d.id)) ?? null;
+    if (match) used.add(match.id);
+    let state: ChecklistItem["state"] = "missing";
+    if (match) {
+      if (match.status === "reading" || match.status === "queued") state = "reading";
+      else if (match.status === "low_confidence") state = "low_confidence";
+      else state = "matched";
+    }
+    return { ...slot, match, state };
+  });
+}
+
 export const kindHintLabel: Record<IngestedDoc["kindHint"], string> = {
   acta: "Acta",
   csf: "CSF",
@@ -196,3 +264,35 @@ export const kindHintLabel: Record<IngestedDoc["kindHint"], string> = {
   ge: "GE",
   otros: "Sin clasificar",
 };
+
+/**
+ * Merge extraction into form values without clobbering operator edits.
+ * Dirty fields keep their value and surface a suggestion instead.
+ */
+export function mergeExtractedIntoForm(
+  current: { name: string; rfc: string; email: string },
+  dirty: { name: boolean; rfc: boolean; email: boolean },
+  extracted: ExtractedFields,
+): {
+  next: { name: string; rfc: string; email: string };
+  suggestions: Partial<{ name: string; rfc: string; email: string }>;
+} {
+  const extractedRfc =
+    extracted.rfc === "— (hereda del padre)" ? "" : extracted.rfc;
+  const suggestions: Partial<{ name: string; rfc: string; email: string }> = {};
+  const next = { ...current };
+
+  (["name", "rfc", "email"] as const).forEach((key) => {
+    const proposed = key === "rfc" ? extractedRfc : extracted[key];
+    if (!proposed) return;
+    if (dirty[key] && current[key].trim() && current[key].trim() !== proposed.trim()) {
+      suggestions[key] = proposed;
+      return;
+    }
+    if (!dirty[key] || !current[key].trim()) {
+      next[key] = proposed;
+    }
+  });
+
+  return { next, suggestions };
+}

@@ -7,61 +7,26 @@ import { ProcessStepper } from "@/components/ProcessStepper";
 import { useCases } from "@/lib/cases-context";
 import { personKindLabel } from "@/lib/labels";
 import {
+  buildChecklist,
   formatBytes,
-  kindHintLabel,
+  mergeExtractedIntoForm,
   mockExtract,
   mockPackageForKind,
+  templates,
   type ExtractedFields,
   type IngestedDoc,
 } from "@/lib/onboarding-ingest";
 import type { OnboardingDraft, PersonKind, ProcessStep } from "@/lib/types";
 
-const kinds: {
-  id: PersonKind;
-  title: string;
-  blurb: string;
-  expected: { id: string; label: string }[];
-}[] = [
-  {
-    id: "legal_entity",
-    title: "Persona moral",
-    blurb: "Subí el paquete documental; Maak extrae RFC y razón social para que solo verifiques.",
-    expected: [
-      { id: "acta", label: "Acta constitutiva" },
-      { id: "csf", label: "CSF" },
-      { id: "poder", label: "Poder del RL" },
-      { id: "ine", label: "INE del RL" },
-    ],
-  },
-  {
-    id: "natural_person",
-    title: "Persona física",
-    blurb: "INE + CSF (y domicilio si aplica). La extracción prellena identidad y RFC.",
-    expected: [
-      { id: "ine", label: "INE frente/reverso" },
-      { id: "csf", label: "CSF" },
-      { id: "dom", label: "Comprobante de domicilio (opc.)" },
-    ],
-  },
-  {
-    id: "cost_center",
-    title: "Centro de costo",
-    blurb: "Documentos del CC; el operador confirma el padre autorizado y los datos extraídos.",
-    expected: [
-      { id: "datos", label: "Datos del CC" },
-      { id: "auth", label: "Autorización del padre" },
-      { id: "ge", label: "GE (si aplica)" },
-    ],
-  },
-];
-
-type DocsScreen = "list" | "upload";
 type UploadPhase = "idle" | "recognizing" | "done";
+type FieldKey = "name" | "rfc" | "email";
+type DirtyMap = Record<FieldKey, boolean>;
+type Suggestions = Partial<Record<FieldKey, string>>;
 
 function previewSteps(kind: PersonKind): ProcessStep[] {
   if (kind === "cost_center") {
     return [
-      { id: "01", label: "Documentos", state: "current", detail: "Ingesta" },
+      { id: "01", label: "Expediente", state: "current", detail: "Ahora" },
       { id: "02", label: "Vínculo padre", state: "todo", detail: "—" },
       { id: "03", label: "Gate GE", state: "todo", detail: "—" },
       { id: "04", label: "Listas", state: "todo", detail: "—" },
@@ -70,7 +35,7 @@ function previewSteps(kind: PersonKind): ProcessStep[] {
   }
   if (kind === "natural_person") {
     return [
-      { id: "01", label: "Documentos", state: "current", detail: "Ingesta" },
+      { id: "01", label: "Expediente", state: "current", detail: "Ahora" },
       { id: "02", label: "Identidad", state: "todo", detail: "—" },
       { id: "03", label: "Listas", state: "todo", detail: "—" },
       { id: "04", label: "Firma", state: "todo", detail: "—" },
@@ -78,11 +43,10 @@ function previewSteps(kind: PersonKind): ProcessStep[] {
     ];
   }
   return [
-    { id: "01", label: "Documentos", state: "current", detail: "Ingesta" },
-    { id: "02", label: "Extracción", state: "todo", detail: "—" },
-    { id: "03", label: "Riesgo", state: "todo", detail: "—" },
-    { id: "04", label: "Firma", state: "todo", detail: "—" },
-    { id: "05", label: "Verificación", state: "todo", detail: "—" },
+    { id: "01", label: "Expediente", state: "current", detail: "Ahora" },
+    { id: "02", label: "Riesgo", state: "todo", detail: "—" },
+    { id: "03", label: "Firma", state: "todo", detail: "—" },
+    { id: "04", label: "Verificación", state: "todo", detail: "—" },
   ];
 }
 
@@ -105,12 +69,10 @@ function OnboardingInner() {
     [cases],
   );
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(preset ? 2 : 1);
+  const [step, setStep] = useState<1 | 2 | 3>(preset ? 2 : 1);
   const [kind, setKind] = useState<PersonKind | null>(
-    preset && kinds.some((k) => k.id === preset) ? preset : null,
+    preset && preset in templates ? preset : null,
   );
-  const [docsScreen, setDocsScreen] = useState<DocsScreen>("list");
-  const [focusDoc, setFocusDoc] = useState<string | null>(null);
   const [uploadPhase, setUploadPhase] = useState<UploadPhase>("idle");
   const [docs, setDocs] = useState<IngestedDoc[]>([]);
   const [extracted, setExtracted] = useState<ExtractedFields | null>(null);
@@ -118,20 +80,51 @@ function OnboardingInner() {
   const [rfc, setRfc] = useState("");
   const [email, setEmail] = useState("");
   const [parentCaseId, setParentCaseId] = useState("");
+  const [dirty, setDirty] = useState<DirtyMap>({ name: false, rfc: false, email: false });
+  const [suggestions, setSuggestions] = useState<Suggestions>({});
   const [createdId, setCreatedId] = useState<string | null>(null);
 
-  const meta = kinds.find((k) => k.id === kind);
+  const meta = kind ? templates[kind] : null;
   const recognizing = uploadPhase === "recognizing";
-  const canVerify =
+  const fieldsLocked = recognizing;
+  const checklist = useMemo(
+    () => (kind ? buildChecklist(kind, docs) : []),
+    [kind, docs],
+  );
+  const requiredOk = checklist
+    .filter((c) => c.required)
+    .every((c) => c.state === "matched" || c.state === "low_confidence");
+  const canCreate =
     uploadPhase === "done" &&
-    docs.length > 0 &&
+    requiredOk &&
     Boolean(name.trim() && email.trim()) &&
     (kind === "cost_center" ? Boolean(parentCaseId) : Boolean(rfc.trim()));
 
-  function openUpload(docId?: string) {
-    setFocusDoc(docId ?? null);
-    setDocsScreen("upload");
-    setUploadPhase("idle");
+  function markDirty(key: FieldKey, value: string) {
+    setDirty((d) => ({ ...d, [key]: true }));
+    if (key === "name") setName(value);
+    if (key === "rfc") setRfc(value.toUpperCase());
+    if (key === "email") setEmail(value);
+    setSuggestions((s) => {
+      if (!s[key]) return s;
+      const next = { ...s };
+      delete next[key];
+      return next;
+    });
+  }
+
+  function applySuggestion(key: FieldKey) {
+    const value = suggestions[key];
+    if (!value) return;
+    if (key === "name") setName(value);
+    if (key === "rfc") setRfc(value);
+    if (key === "email") setEmail(value);
+    setDirty((d) => ({ ...d, [key]: true }));
+    setSuggestions((s) => {
+      const next = { ...s };
+      delete next[key];
+      return next;
+    });
   }
 
   async function simulateUploadAndRecognize() {
@@ -140,11 +133,12 @@ function OnboardingInner() {
     const pack = mockPackageForKind(kind);
     setDocs(pack);
     setUploadPhase("recognizing");
+    setSuggestions({});
 
-    // Brief “files landed” beat, then backend recognition (~2s total).
     await wait(400);
     setDocs((prev) => prev.map((d) => ({ ...d, status: "reading" })));
     await wait(1600);
+
     const fields = mockExtract(kind, pack);
     setDocs((prev) =>
       prev.map((d) => ({
@@ -153,16 +147,21 @@ function OnboardingInner() {
       })),
     );
     setExtracted(fields);
-    setName(fields.name);
-    setRfc(fields.rfc === "— (hereda del padre)" ? "" : fields.rfc);
-    setEmail(fields.email);
+
+    const { next, suggestions: pending } = mergeExtractedIntoForm(
+      { name, rfc, email },
+      dirty,
+      fields,
+    );
+    setName(next.name);
+    setRfc(next.rfc);
+    setEmail(next.email);
+    setSuggestions(pending);
     setUploadPhase("done");
-    setDocsScreen("list");
-    setStep(3);
   }
 
   function create() {
-    if (!kind || !canVerify) return;
+    if (!kind || !canCreate) return;
     const draft: OnboardingDraft = {
       kind,
       name: name.trim(),
@@ -172,7 +171,7 @@ function OnboardingInner() {
     };
     const created = addCaseFromOnboarding(draft);
     setCreatedId(created.id);
-    setStep(4);
+    setStep(3);
   }
 
   return (
@@ -183,17 +182,16 @@ function OnboardingInner() {
       <header className="card mb-4">
         <h1 className="m-0 text-[22px] font-bold tracking-tight">Alta asistida</h1>
         <p className="mt-1 text-[13px] text-[var(--muted)]">
-          Documentos primero: cargá el paquete → reconocimiento automático (~2s) → verificá RFC y
-          datos.
+          Una sola pantalla de expediente: carga (PDF/ZIP) + checklist del template + campos. Durante
+          el reconocimiento los campos se bloquean para no pelear con el agente.
         </p>
       </header>
 
       <div className="mb-4 flex flex-wrap gap-2 text-xs font-bold">
         {[
           [1, "Tipo"],
-          [2, "Documentos"],
-          [3, "Verificar"],
-          [4, "Listo"],
+          [2, "Expediente"],
+          [3, "Listo"],
         ].map(([n, label]) => (
           <div
             key={n as number}
@@ -212,108 +210,66 @@ function OnboardingInner() {
 
       {step === 1 ? (
         <div className="grid gap-3 md:grid-cols-3">
-          {kinds.map((k) => (
-            <button
-              key={k.id}
-              type="button"
-              onClick={() => {
-                setKind(k.id);
-                setDocs([]);
-                setExtracted(null);
-                setUploadPhase("idle");
-                setDocsScreen("list");
-                setFocusDoc(null);
-                setName("");
-                setRfc("");
-                setEmail("");
-                setParentCaseId("");
-                setStep(2);
-              }}
-              className="card mb-0 text-left hover:border-[var(--primary)]"
-            >
-              <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
-                {k.title}
-              </div>
-              <p className="mt-2 text-[13px] text-[var(--muted)]">{k.blurb}</p>
-              <ul className="mt-2 list-disc pl-4 text-xs text-[var(--ink-2)]">
-                {k.expected.map((d) => (
-                  <li key={d.id}>{d.label}</li>
-                ))}
-              </ul>
-            </button>
-          ))}
+          {(Object.keys(templates) as PersonKind[]).map((id) => {
+            const k = templates[id];
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => {
+                  setKind(id);
+                  setDocs([]);
+                  setExtracted(null);
+                  setUploadPhase("idle");
+                  setName("");
+                  setRfc("");
+                  setEmail("");
+                  setParentCaseId("");
+                  setDirty({ name: false, rfc: false, email: false });
+                  setSuggestions({});
+                  setStep(2);
+                }}
+                className="card mb-0 text-left hover:border-[var(--primary)]"
+              >
+                <div className="text-xs font-bold uppercase tracking-wide text-[var(--primary)]">
+                  {k.title}
+                </div>
+                <p className="mt-2 text-[13px] text-[var(--muted)]">{k.blurb}</p>
+                <ul className="mt-2 list-disc pl-4 text-xs text-[var(--ink-2)]">
+                  {k.docs.map((d) => (
+                    <li key={d.id}>
+                      {d.label}
+                      {d.required ? "" : " (opc.)"}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            );
+          })}
         </div>
       ) : null}
 
       {step === 2 && kind && meta ? (
-        <div className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
-          {docsScreen === "list" ? (
-            <section className="card">
-              <h2>Documentos requeridos</h2>
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+          <div className="grid gap-4">
+            {/* Upload */}
+            <section className="card mb-0">
+              <h2 className="!mb-1">Carga documental</h2>
               <p className="mb-3 text-[13px] text-[var(--muted)]">
-                Tocá un documento (o el botón de carga) para abrir la pantalla de subida. En el
-                prototipo la carga es simulada.
+                Arrastrá o simulá un paquete (varios PDF o ZIP). El reconocimiento clasifica contra el
+                template y propone valores en los campos de abajo.
               </p>
-              <ul className="grid gap-2">
-                {meta.expected.map((d) => (
-                  <li key={d.id}>
-                    <button
-                      type="button"
-                      disabled={recognizing}
-                      onClick={() => openUpload(d.id)}
-                      className="flex w-full items-center justify-between gap-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface)] px-3 py-3 text-left transition-colors hover:border-[var(--line-strong)] hover:bg-[var(--surface-2)] disabled:opacity-50"
-                    >
-                      <div>
-                        <div className="text-[13px] font-semibold">{d.label}</div>
-                        <div className="text-[11px] text-[var(--muted)]">
-                          Clic para cargar / simular paquete
-                        </div>
-                      </div>
-                      <span className="text-[12px] font-bold text-[var(--primary)]">Cargar</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  disabled={recognizing}
-                  className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)] disabled:opacity-40"
-                >
-                  Atrás
-                </button>
-                <button
-                  type="button"
-                  disabled={recognizing}
-                  onClick={() => openUpload()}
-                  className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
-                >
-                  Cargar documentos
-                </button>
-              </div>
-            </section>
-          ) : (
-            <section className="card">
-              <h2>Subir documentos</h2>
-              <p className="mb-3 text-[13px] text-[var(--muted)]">
-                {focusDoc
-                  ? `Carga iniciada desde «${meta.expected.find((d) => d.id === focusDoc)?.label}». `
-                  : null}
-                En el prototipo, un clic simula el paquete (ZIP descomprimido) y dispara el
-                reconocimiento en backend.
-              </p>
-
               <button
                 type="button"
                 disabled={recognizing}
                 onClick={() => void simulateUploadAndRecognize()}
                 aria-busy={recognizing}
-                className={`flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed px-4 py-12 text-center transition-colors ${
+                className={`flex w-full flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-dashed px-4 py-10 text-center transition-colors ${
                   recognizing
                     ? "border-[var(--warn)] bg-[var(--warn-bg)]"
-                    : "border-[var(--line-strong)] bg-[var(--surface-2)]/40 hover:border-[var(--action)]"
+                    : uploadPhase === "done"
+                      ? "border-[var(--ok-line)] bg-[var(--ok-bg)]/40 hover:border-[var(--action)]"
+                      : "border-[var(--line-strong)] bg-[var(--surface-2)]/40 hover:border-[var(--action)]"
                 } disabled:cursor-wait`}
               >
                 {recognizing ? (
@@ -323,39 +279,185 @@ function OnboardingInner() {
                       Reconocimiento de datos en curso…
                     </span>
                     <span className="text-[12px] text-[var(--muted)]">
-                      Clasificando documentos y extrayendo RFC / identidad (mock backend)
+                      Relacionando archivos del paquete con el template (~2s)
+                    </span>
+                  </>
+                ) : uploadPhase === "done" ? (
+                  <>
+                    <span className="text-[14px] font-semibold tracking-tight text-[var(--ok)]">
+                      Paquete cargado · clic para volver a simular
+                    </span>
+                    <span className="text-[12px] text-[var(--muted)]">
+                      {docs.length} archivo{docs.length === 1 ? "" : "s"} · confianza{" "}
+                      {extracted?.confidence ?? "—"}
                     </span>
                   </>
                 ) : (
                   <>
                     <span className="text-[14px] font-semibold tracking-tight">
-                      Clic para simular carga del paquete
+                      Clic para simular carga (PDF / ZIP)
                     </span>
                     <span className="text-[12px] text-[var(--muted)]">
-                      PDF / ZIP mock · sin diálogo de archivos
+                      Prototipo: sin diálogo de archivos
                     </span>
                   </>
                 )}
               </button>
 
-              {docs.length > 0 && recognizing ? (
-                <ul className="mt-4 grid gap-2">
+              {docs.length > 0 ? (
+                <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
                   {docs.map((d) => (
                     <li
                       key={d.id}
-                      className="flex items-start justify-between gap-3 rounded-[var(--radius)] border border-[var(--line)] px-3 py-2.5"
+                      className="truncate rounded-md border border-[var(--line)] px-2.5 py-1.5 text-[12px]"
                     >
-                      <div className="min-w-0">
-                        <div className="truncate text-[13px] font-semibold">{d.name}</div>
-                        <div className="mt-0.5 text-[11px] text-[var(--muted)]">
-                          {kindHintLabel[d.kindHint]}
-                          {d.source === "zip" ? ` · ${d.zipName}` : ""}
-                          {d.size ? ` · ${formatBytes(d.size)}` : ""}
-                        </div>
-                      </div>
-                      <span className="shrink-0 text-[11px] font-bold text-[var(--muted)]">
-                        {d.status === "reading" ? "Leyendo" : "En cola"}
+                      <span className="font-medium">{d.name}</span>
+                      <span className="text-[var(--muted)]">
+                        {" "}
+                        · {d.size ? formatBytes(d.size) : "ZIP"}
                       </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+
+            {/* Checklist + fields */}
+            <section className="card mb-0">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="!mb-1">Template · {meta.title}</h2>
+                  <p className="m-0 text-[13px] text-[var(--muted)]">
+                    Checklist del template + campos del alta. Misma pantalla, una sola fuente de
+                    verdad.
+                  </p>
+                </div>
+                {extracted ? <ConfidencePill level={extracted.confidence} /> : null}
+              </div>
+
+              {recognizing ? (
+                <div
+                  className="mb-3 rounded-[var(--radius)] border border-[var(--warn-line)] bg-[var(--warn-bg)] px-3 py-2.5 text-[12.5px] text-[var(--warn)]"
+                  role="status"
+                >
+                  El agente está relacionando documentos y campos. Los inputs quedan bloqueados unos
+                  segundos para evitar pisar lo que estás tipeando.
+                </div>
+              ) : null}
+
+              {Object.keys(suggestions).length > 0 ? (
+                <div
+                  className="mb-3 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2.5 text-[12.5px] text-[var(--ink-2)]"
+                  role="status"
+                >
+                  Hay valores del documento distintos a lo que editaste. No se sobrescribieron:
+                  aplicá solo si querés.
+                </div>
+              ) : null}
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div>
+                  <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Checklist documental
+                  </h3>
+                  <ul className="grid gap-2">
+                    {checklist.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-start justify-between gap-2 rounded-[var(--radius)] border border-[var(--line)] px-3 py-2.5"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[13px] font-semibold">{item.label}</div>
+                          <div className="truncate text-[11px] text-[var(--muted)]">
+                            {item.match
+                              ? item.match.name
+                              : item.required
+                                ? "Pendiente en el paquete"
+                                : "Opcional"}
+                          </div>
+                        </div>
+                        <ChecklistState state={item.state} required={item.required} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Campos del template
+                  </h3>
+                  <div className="grid gap-3">
+                    <Field
+                      label={
+                        kind === "natural_person"
+                          ? "Nombre completo"
+                          : kind === "cost_center"
+                            ? "Nombre del centro de costo"
+                            : "Razón social"
+                      }
+                      value={name}
+                      locked={fieldsLocked}
+                      suggestion={suggestions.name}
+                      onChange={(v) => markDirty("name", v)}
+                      onApplySuggestion={() => applySuggestion("name")}
+                    />
+                    <Field
+                      label="RFC"
+                      value={rfc}
+                      locked={fieldsLocked}
+                      suggestion={suggestions.rfc}
+                      placeholder={kind === "cost_center" ? "Opcional / hereda del padre" : undefined}
+                      onChange={(v) => markDirty("rfc", v)}
+                      onApplySuggestion={() => applySuggestion("rfc")}
+                    />
+                    <Field
+                      label="Correo de contacto"
+                      value={email}
+                      locked={fieldsLocked}
+                      suggestion={suggestions.email}
+                      type="email"
+                      onChange={(v) => markDirty("email", v)}
+                      onApplySuggestion={() => applySuggestion("email")}
+                    />
+                    {extracted?.representante ? (
+                      <label className="grid gap-1 text-[13px]">
+                        <span className="font-semibold text-[var(--ink-2)]">
+                          Representante (solo lectura)
+                        </span>
+                        <input
+                          value={extracted.representante}
+                          readOnly
+                          className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink-2)]"
+                        />
+                      </label>
+                    ) : null}
+                    {kind === "cost_center" ? (
+                      <label className="grid gap-1 text-[13px]">
+                        <span className="font-semibold text-[var(--ink-2)]">Persona moral padre</span>
+                        <select
+                          value={parentCaseId}
+                          disabled={fieldsLocked}
+                          onChange={(e) => setParentCaseId(e.target.value)}
+                          className="rounded-lg border border-[var(--line)] px-3 py-2 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <option value="">Seleccionar…</option>
+                          {parents.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {extracted?.notes.length ? (
+                <ul className="mt-4 list-disc rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-[12px] text-[var(--ink-2)]">
+                  {extracted.notes.map((n) => (
+                    <li key={n} className="ml-3">
+                      {n}
                     </li>
                   ))}
                 </ul>
@@ -365,171 +467,44 @@ function OnboardingInner() {
                 <button
                   type="button"
                   disabled={recognizing}
-                  onClick={() => {
-                    setDocsScreen("list");
-                    setFocusDoc(null);
-                  }}
+                  onClick={() => setStep(1)}
                   className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)] disabled:opacity-40"
                 >
                   Atrás
                 </button>
+                <button
+                  type="button"
+                  disabled={!canCreate || recognizing}
+                  onClick={create}
+                  className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
+                >
+                  Crear caso en revisión
+                </button>
               </div>
             </section>
-          )}
+          </div>
 
-          <section className="card">
+          <aside className="card mb-0 h-fit">
             <h2>Recorrido {personKindLabel[kind]}</h2>
             <ProcessStepper steps={previewSteps(kind)} />
-            <p className="mt-3 text-[12px] text-[var(--muted)]">
-              Prototipo clickable: el reconocimiento dura ~2s y luego pasa a verificar datos.
-            </p>
-          </section>
+            <div className="mt-4 space-y-2 text-[12px] text-[var(--muted)]">
+              <p className="m-0 font-semibold text-[var(--ink-2)]">Conflicto agente ↔ operador</p>
+              <ul className="m-0 list-disc space-y-1 pl-4">
+                <li>Mientras reconoce: campos bloqueados.</li>
+                <li>Si ya editaste un campo: no se pisa; aparece «Usar valor del documento».</li>
+                <li>Si el campo estaba vacío: se completa solo.</li>
+              </ul>
+            </div>
+          </aside>
         </div>
       ) : null}
 
-      {step === 3 && kind && meta ? (
-        <section className="card">
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <h2 className="!mb-1">Verificar datos extraídos</h2>
-              <p className="m-0 text-[13px] text-[var(--muted)]">
-                El reconocimiento ya corrió. Confirmá o corregí lo que salió del paquete.
-              </p>
-            </div>
-            {extracted ? <ConfidencePill level={extracted.confidence} /> : null}
-          </div>
-
-          {docs.length > 0 ? (
-            <div className="mb-4">
-              <div className="mb-2 text-[12px] font-semibold text-[var(--ink-2)]">
-                Paquete reconocido ({docs.length})
-              </div>
-              <ul className="grid gap-1.5 sm:grid-cols-2">
-                {docs.map((d) => (
-                  <li
-                    key={d.id}
-                    className="truncate rounded-md border border-[var(--line)] px-2.5 py-1.5 text-[12px]"
-                  >
-                    <span className="font-medium">{d.name}</span>
-                    <span className="text-[var(--muted)]"> · {kindHintLabel[d.kindHint]}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          {extracted?.notes.length ? (
-            <ul className="mb-4 list-disc rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-[12px] text-[var(--ink-2)]">
-              {extracted.notes.map((n) => (
-                <li key={n} className="ml-3">
-                  {n}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="grid gap-1 text-[13px] md:col-span-2">
-              <span className="font-semibold text-[var(--ink-2)]">
-                {kind === "natural_person"
-                  ? "Nombre completo"
-                  : kind === "cost_center"
-                    ? "Nombre del centro de costo"
-                    : "Razón social"}
-              </span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="rounded-lg border border-[var(--line)] px-3 py-2"
-              />
-            </label>
-            <label className="grid gap-1 text-[13px]">
-              <span className="font-semibold text-[var(--ink-2)]">RFC</span>
-              <input
-                value={rfc}
-                onChange={(e) => setRfc(e.target.value.toUpperCase())}
-                placeholder={kind === "cost_center" ? "Opcional / hereda del padre" : undefined}
-                className="rounded-lg border border-[var(--line)] px-3 py-2"
-              />
-            </label>
-            <label className="grid gap-1 text-[13px]">
-              <span className="font-semibold text-[var(--ink-2)]">Correo de contacto</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="rounded-lg border border-[var(--line)] px-3 py-2"
-              />
-            </label>
-            {extracted?.representante ? (
-              <label className="grid gap-1 text-[13px]">
-                <span className="font-semibold text-[var(--ink-2)]">Representante (extraído)</span>
-                <input
-                  value={extracted.representante}
-                  readOnly
-                  className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink-2)]"
-                />
-              </label>
-            ) : null}
-            {extracted?.domicilio ? (
-              <label className="grid gap-1 text-[13px]">
-                <span className="font-semibold text-[var(--ink-2)]">Domicilio (extraído)</span>
-                <input
-                  value={extracted.domicilio}
-                  readOnly
-                  className="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] px-3 py-2 text-[var(--ink-2)]"
-                />
-              </label>
-            ) : null}
-            {kind === "cost_center" ? (
-              <label className="grid gap-1 text-[13px] md:col-span-2">
-                <span className="font-semibold text-[var(--ink-2)]">Persona moral padre</span>
-                <select
-                  value={parentCaseId}
-                  onChange={(e) => setParentCaseId(e.target.value)}
-                  className="rounded-lg border border-[var(--line)] px-3 py-2"
-                >
-                  <option value="">Seleccionar…</option>
-                  {parents.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setStep(2);
-                setDocsScreen("list");
-              }}
-              className="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2.5 text-[13px] font-bold hover:border-[var(--line-strong)]"
-            >
-              Atrás
-            </button>
-            <button
-              type="button"
-              disabled={!canVerify}
-              onClick={create}
-              className="rounded-lg bg-[var(--action)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--action-fg)] hover:bg-[var(--action-hover)] disabled:opacity-40"
-            >
-              Crear caso en revisión
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {step === 4 && createdId ? (
+      {step === 3 && createdId ? (
         <section className="card text-center">
           <div className="text-xs font-bold uppercase tracking-wide text-[var(--ok)]">Caso creado</div>
           <h2 className="!mb-2 mt-2">{createdId}</h2>
           <p className="text-[13px] text-[var(--muted)]">
-            Quedó en casos pendientes con el paquete documental y los datos verificados por el
-            operador.
+            Expediente con paquete documental y campos verificados en la misma pantalla.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <button
@@ -559,6 +534,79 @@ function OnboardingInner() {
         </section>
       ) : null}
     </>
+  );
+}
+
+function Field({
+  label,
+  value,
+  locked,
+  suggestion,
+  onChange,
+  onApplySuggestion,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  locked: boolean;
+  suggestion?: string;
+  onChange: (v: string) => void;
+  onApplySuggestion: () => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <label className="grid gap-1 text-[13px]">
+      <span className="flex items-center justify-between gap-2 font-semibold text-[var(--ink-2)]">
+        {label}
+        {locked ? (
+          <span className="text-[10px] font-bold uppercase tracking-wide text-[var(--warn)]">
+            Bloqueado
+          </span>
+        ) : null}
+      </span>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        disabled={locked}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-[var(--line)] px-3 py-2 disabled:cursor-not-allowed disabled:bg-[var(--surface-2)] disabled:opacity-70"
+      />
+      {suggestion ? (
+        <button
+          type="button"
+          onClick={onApplySuggestion}
+          className="justify-self-start text-left text-[11px] font-semibold text-[var(--primary)] hover:underline"
+        >
+          Usar valor del documento: {suggestion}
+        </button>
+      ) : null}
+    </label>
+  );
+}
+
+function ChecklistState({
+  state,
+  required,
+}: {
+  state: "missing" | "matched" | "reading" | "low_confidence";
+  required: boolean;
+}) {
+  if (state === "matched") {
+    return <span className="shrink-0 text-[11px] font-bold text-[var(--ok)]">OK</span>;
+  }
+  if (state === "reading") {
+    return <span className="shrink-0 text-[11px] font-bold text-[var(--warn)]">Leyendo</span>;
+  }
+  if (state === "low_confidence") {
+    return <span className="shrink-0 text-[11px] font-bold text-[var(--warn)]">Revisar</span>;
+  }
+  return (
+    <span className="shrink-0 text-[11px] font-bold text-[var(--muted)]">
+      {required ? "Falta" : "Opc."}
+    </span>
   );
 }
 

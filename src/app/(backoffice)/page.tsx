@@ -57,17 +57,17 @@ export default function HomePage() {
           {
             href: "/onboarding?kind=legal_entity",
             title: "Alta persona moral",
-            body: "Docs/ZIP → extracción → verificar → riesgo → firma",
+            body: "Expediente unificado: carga + checklist + campos",
           },
           {
             href: "/onboarding?kind=natural_person",
             title: "Alta persona física",
-            body: "Docs/ZIP → extracción → verificar → listas → firma",
+            body: "Expediente unificado: carga + checklist + campos",
           },
           {
             href: "/onboarding?kind=cost_center",
             title: "Alta centro de costo",
-            body: "Docs → verificar + padre → GE → listas",
+            body: "Expediente unificado + padre autorizado",
           },
         ].map((flow) => (
           <Link
