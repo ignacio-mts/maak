@@ -1,0 +1,14 @@
+---
+description: Deploy paths — Vercel ola 1; Fargate ola 2 API; EKS separate
+globs:
+  - docs/deploy/**
+  - docs/adr/ADR-003_Fargate_vs_EKS.md
+  - docs/engineering/ARCHITECTURE.md
+---
+
+# Deploy
+
+- Ola 1 UI: **Vercel**.
+- Ola 2 Maak API (test): **AWS Fargate** — see `docs/adr/ADR-003_Fargate_vs_EKS.md`.
+- EKS/Kong = platform track; do not block Maak MVP on cluster bootstrap.
+- Do not add SPEI/Account infrastructure into this app’s deploy story.

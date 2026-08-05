@@ -1,0 +1,15 @@
+---
+description: PR Definition of Done for Maak changes
+alwaysApply: true
+---
+
+# PR / DoD
+
+Before finish:
+
+- [ ] Boundaries OK (no Account/SPEI/CLABE)
+- [ ] Code EN / UI ES
+- [ ] Tokens + light/dark for UI
+- [ ] Lint/build green for code
+- [ ] Checklists: `docs/checklists/PR_CHECKLIST.md`, `DEFINITION_OF_DONE.md`
+- [ ] Jira MAAK linked; Notion is not the team tracker

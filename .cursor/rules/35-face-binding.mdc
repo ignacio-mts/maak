@@ -1,0 +1,14 @@
+---
+description: FaceBinding port — vendor SDKs only under adapters/face
+globs:
+  - src/adapters/face/**
+  - docs/engineering/FACE_BINDING.md
+  - docs/adr/ADR-Face_Provider_Agnostic.md
+---
+
+# FaceBinding
+
+- Provider-agnostic **port**; adapters only in `src/adapters/face/`.
+- Ban vendor face/liveness SDKs in components, layout, or public scripts.
+- Ola 1: no real face integration — timeline/copy only if needed.
+- See `docs/engineering/FACE_BINDING.md` and `docs/adr/ADR-Face_Provider_Agnostic.md`.

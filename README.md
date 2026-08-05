@@ -4,14 +4,20 @@ Prototipo clickable del sistema de gestión de clientes (SGC / onboarding de per
 
 Maak certifica **persona verificada** (expediente, KYC/KYB/PLD, casos de revisión). No opera saldos ni SPEI. La cuenta **activa** vive en el core (transición vía adapter SICLI/EF).
 
-## Correr
+## Ola 1 — Prototipo Vercel
+
+- UI **Cursor-like** con **light / dark** mode
+- Password gate (`iron-session`) — ver [`.env.example`](.env.example)
+- Deploy: [`docs/deploy/VERCEL_PROTOTYPE.md`](docs/deploy/VERCEL_PROTOTYPE.md)
+- Datos mock en memoria (sin API persistente todavía)
 
 ```bash
 npm install
+cp .env.example .env.local   # set SITE_PASSWORD + SESSION_SECRET (≥32 chars)
 npm run dev
 ```
 
-Abrir [http://localhost:3000](http://localhost:3000).
+Abrir [http://localhost:3000](http://localhost:3000) → `/login`.
 
 ## Rutas (código en inglés · UI en español)
 
@@ -25,6 +31,8 @@ Abrir [http://localhost:3000](http://localhost:3000).
 | `/people` | Personas verificadas |
 | `/rules` | Configuración de reglas + vista previa de impacto |
 | `/intake/[token]` | Enlace write-only para el cliente |
+| `/client/cc` | Vista cliente mock — alta CC bajo padre autorizado |
+| `/login` | Password gate del prototipo |
 
 ## Flujos
 
@@ -33,14 +41,17 @@ Abrir [http://localhost:3000](http://localhost:3000).
 3. **Centro de costo** — vínculo al padre → GE → listas → verificación  
 4. **Reglas** — publicar cambio con preview de reproceso por cohorte  
 
-Datos mock en `src/lib/data.ts`. Estado de sesión en `src/lib/cases-context.tsx`.
+## Ingeniería / agentes
 
-## Docs de referencia
+- [`docs/engineering/`](docs/engineering/) — dominio, arquitectura, tokens, RBAC, FaceBinding, playbook
+- [`docs/prd/`](docs/prd/) — charter MVP + access control
+- [`docs/adr/`](docs/adr/) — decisiones (rules engine, Fargate, face)
+- [`docs/jira/MAAK_BOARD_SETUP.md`](docs/jira/MAAK_BOARD_SETUP.md) — setup tablero Jira (único SoT)
+- [`docs/openapi/maak-onboarding.v0.yaml`](docs/openapi/maak-onboarding.v0.yaml) — contrato borrador (ola 2)
+- `.cursor/rules/` — reglas always-on para agentes
 
-- [`docs/13_Analisis_SICLI_Maak_Reemplazo.html`](docs/13_Analisis_SICLI_Maak_Reemplazo.html)
-- [`docs/13b_Maak_HITL_Caso_Prototipo.html`](docs/13b_Maak_HITL_Caso_Prototipo.html) *(nombre de archivo histórico)*
-- [`docs/13c_Maak_Prototipos.html`](docs/13c_Maak_Prototipos.html)
+Docs HTML `docs/13_*` = **flujos/dominio**, no tokens visuales.
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind. Sin DB ni integraciones reales.
+Next.js 16 (App Router) + TypeScript + Tailwind 4 + Geist. Ola 1: sin DB. Ola 2: OpenAPI + RBAC + Fargate (ver plan).
