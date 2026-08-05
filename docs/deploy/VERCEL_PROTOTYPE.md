@@ -1,5 +1,12 @@
 # Deploy prototipo Maak a Vercel (Ola 1)
 
+## URL compartible (producción)
+
+- **https://maak-lyart.vercel.app**
+- Proyecto Vercel: `ignacios-projects-9e7753d2/maak`
+- Contraseña del gate de app: `loqueviene`
+- Candado = `/login` (iron-session), **no** Vercel Password Protection
+
 ## Candado = frontend (no Vercel Password Protection)
 
 El acceso al prototipo es un **lock de app** con `iron-session`:

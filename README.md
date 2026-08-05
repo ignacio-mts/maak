@@ -9,7 +9,8 @@ Maak certifica **persona verificada** (expediente, KYC/KYB/PLD, casos de revisi�
 - UI **Cursor-like** con **light / dark** mode
 - Candado de frontend (`iron-session` en `/login`) — **no** Vercel Password Protection
 - Contraseña del prototipo: `loqueviene` (override con `SITE_PASSWORD`)
-- Deploy Hobby: [`docs/deploy/VERCEL_PROTOTYPE.md`](docs/deploy/VERCEL_PROTOTYPE.md) (import GitHub)
+- Prototipo en Vercel: **https://maak-lyart.vercel.app** → `/login` → `loqueviene`
+- Deploy Hobby: [`docs/deploy/VERCEL_PROTOTYPE.md`](docs/deploy/VERCEL_PROTOTYPE.md)
 - Datos mock en memoria (sin API persistente todavía)
 
 ```bash
